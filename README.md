@@ -46,6 +46,8 @@ catkin build
 
 # Usage Stretch
 
+Change inflation layer inflation radius to 0.20
+
 ```shell
 # Shell 1
 roslaunch stretch_rtabmap start_rtab.launch sim:=false localization:=false move_base_config:=3d_unknown
