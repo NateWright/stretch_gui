@@ -10,7 +10,8 @@ stretch_gui is meant to utilize all aspects of stretch to navigate and grasps ob
 
 ```shell
 cd ~/catkin_ws/src
-git clone https://github.com/NateWright/stretch_ros -b dev/Android
+git clone https://github.com/hello-robot/stretch_ros -b dev/noetic
+git clone https://github.com/NateWright/stretch_gui.git
 git clone https://github.com/pal-robotics/realsense_gazebo_plugin
 cd ~/catkin_ws
 rosdep install --from-paths src --ignore-src -r -y
@@ -23,7 +24,7 @@ catkin build
 # Shell 1
 roslaunch stretch_rtabmap gazebo.launch
 # Shell 2
-roslaunch stretch_rtabmap start_rtab.launch sim:=true localization:=false move_base_config:=3d
+roslaunch stretch_rtabmap start_rtab.launch sim:=true localization:=false move_base_config:=3d_unknown
 # Shell 3
 roslaunch stretch_moveit_config move_group.launch
 # Shell 4
@@ -36,7 +37,8 @@ roslaunch stretch_gui_server stretch_gui_server.launch sim:=true
 
 ```shell
 cd ~/catkin_ws/src
-git clone https://github.com/NateWright/stretch_ros dev/Android
+git clone https://github.com/hello-robot/stretch_ros -b dev/noetic
+git clone https://github.com/NateWright/stretch_gui.git
 cd ~/catkin_ws
 rosdep install --from-paths src --ignore-src -r -y
 catkin build
@@ -46,7 +48,7 @@ catkin build
 
 ```shell
 # Shell 1
-roslaunch stretch_rtabmap start_rtab.launch sim:=false localization:=false move_base_config:=3d
+roslaunch stretch_rtabmap start_rtab.launch sim:=false localization:=false move_base_config:=3d_unknown
 # Shell 2
 rosrun web_video_server web_video_server
 # Shell 3
