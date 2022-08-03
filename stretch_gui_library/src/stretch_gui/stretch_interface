@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+import rospy
+import sys
+import threading
+import hello_helpers.hello_misc as hm
+from std_msgs.msg import Float64
+from sensor_msgs.msg import JointState
+from stretch_gui_library.srv import DoubleBool, DoubleBoolResponse
+
+class stretch_interface(hm.HelloNode):
+    def __init__(self):
+        hm.HelloNode.__init__(self)
+        self.rate = 10.0
+        self.joint_states = None
+        self.joint_states_lock = threading.Lock()
+        self.letter_height_m = 0.2
+        self.wrist_position = None
+        self.lift_position = None
+        self.manipulation_view = None
+        self.debug_directory = None
+        self.move_lock = threading.Lock();
+
+    def callback_set_head_tilt(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'joint_head_tilt': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+    
+    def callback_set_head_pan(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'joint_head_pan': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+
+    def callback_set_lift(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'joint_lift': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+
+    def callback_set_extension(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'wrist_extension': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+
+    def callback_set_wrist_yaw(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'joint_wrist_yaw': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+
+    def callback_set_gripper_aperture(self, data):
+        self.move_lock.acquire();
+        initial_pose = {'gripper_aperture': data.data}
+        self.move_to_pose(initial_pose)
+        self.move_lock.release();
+        return DoubleBoolResponse(True);
+
+    def main(self):
+        hm.HelloNode.main(self, 'stretch_interface', 'stretch_interface', wait_for_first_pointcloud=False)
+        self.head_tilt_service = rospy.Service('/stretch_interface/head_tilt', DoubleBool, self.callback_set_head_tilt);
+        self.head_pan_service = rospy.Service('/stretch_interface/head_pan', DoubleBool, self.callback_set_head_pan);
+        self.lift_service = rospy.Service('/stretch_interface/lift', DoubleBool, self.callback_set_lift);
+        self.lift_extension_service = rospy.Service('/stretch_interface/lift_extension', DoubleBool, self.callback_set_extension);
+        self.wrist_yaw_service = rospy.Service('/stretch_interface/wrist_yaw', DoubleBool, self.callback_set_wrist_yaw);
+        self.gripper_aperture_service = rospy.Service('/stretch_interface/gripper_opening', DoubleBool, self.callback_set_gripper_aperture);
+
+        rate = rospy.Rate(self.rate)
+        while not rospy.is_shutdown() and KeyboardInterrupt:
+            rate.sleep()
+
+def main(args):
+    node = stretch_interface()
+    node.main()
+
+if __name__ == '__main__':
+    main(sys.argv)

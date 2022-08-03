@@ -1,0 +1,4 @@
+odom: "/odom"
+pointCloudTopic: "/camera/depth_registered/points"
+verticalOffset: 0.35
+horizontalOffset: 0.36

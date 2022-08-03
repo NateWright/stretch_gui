@@ -1,0 +1,16 @@
+<launch>
+  <arg name="sim" />
+
+  <group if="$(arg sim)">
+    <include file="$(find stretch_gui_server)/launch/stretch_gazebo.xml"/>
+    <node name="stretch_gui" pkg="stretch_gui_server" type="server_node" output="screen">
+      <rosparam command="load" file="$(find stretch_gui_server)/config/params_gazebo.yaml" />
+    </node>
+  </group>
+  <group unless="$(arg sim)">
+  <include file="$(find stretch_gui_server)/launch/stretch_interface.xml"/>
+    <node name="stretch_gui" pkg="stretch_gui_server" type="server_node" output="screen">
+      <rosparam command="load" file="$(find stretch_gui_server)/config/params.yaml" />
+    </node>
+  </group>
+</launch>
