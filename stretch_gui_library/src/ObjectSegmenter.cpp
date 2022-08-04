@@ -31,6 +31,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     reg.extract(clusters);
 
     segmented_cloud = reg.getColoredCloud();
+    segmented_cloud->header = inputCloud->header;
     testPub_.publish(segmented_cloud);
 
     ROS_INFO_STREAM("Picking event occurred");
