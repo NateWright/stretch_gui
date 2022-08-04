@@ -8,55 +8,30 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
     pcl::PointCloud<point>::Ptr vox_filtered_cloud(new pcl::PointCloud<point>);
-    pcl::PointCloud<point>::Ptr table_filtered_cloud(new pcl::PointCloud<point>);
-    pcl::PointCloud<point>::Ptr table2_filtered_cloud(new pcl::PointCloud<point>);
+    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+    std::vector<pcl::PointIndices> clusters;
 
     // Down sample the point cloud
     pcl::VoxelGrid<point> voxelFilter;
     voxelFilter.setInputCloud(inputCloud);
-    voxelFilter.setLeafSize(0.02f, 0.02f, 0.02f);
+    voxelFilter.setLeafSize(0.015f, 0.015f, 0.015f);
     voxelFilter.filter(*vox_filtered_cloud);
 
-    // Remove table from scene
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-    pcl::SACSegmentation<point> seg1;
+    pcl::search::Search<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::IndicesPtr indices(new std::vector<int>);
 
-    seg1.setOptimizeCoefficients(true);
-    seg1.setModelType(pcl::SACMODEL_PLANE);
-    seg1.setMethodType(pcl::SAC_RANSAC);
-    seg1.setDistanceThreshold(0.01);
+    pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
+    reg.setInputCloud(vox_filtered_cloud);
+    reg.setSearchMethod(tree);
+    reg.setDistanceThreshold(10);
+    reg.setPointColorThreshold(6);
+    reg.setRegionColorThreshold(5);
+    reg.setMinClusterSize(600);
 
-    seg1.setInputCloud(vox_filtered_cloud);
-    seg1.segment(*inliers, *coefficients);
+    reg.extract(clusters);
 
-    pcl::ExtractIndices<point> extract;
-    extract.setInputCloud(vox_filtered_cloud);
-    extract.setIndices(inliers);
-    extract.setNegative(true);
-    extract.filter(*table_filtered_cloud);
-
-    seg1.setInputCloud(table_filtered_cloud);
-    seg1.segment(*inliers, *coefficients);
-
-    extract.setInputCloud(table_filtered_cloud);
-    extract.setIndices(inliers);
-    extract.setNegative(true);
-    extract.filter(*table2_filtered_cloud);
-
-    testPub_.publish(table2_filtered_cloud);
-
-    pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
-    tree->setInputCloud(table2_filtered_cloud);
-
-    std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<point> ec;
-    ec.setClusterTolerance(0.02);  // 2cm
-    ec.setMinClusterSize(100);
-    ec.setMaxClusterSize(25000);
-    ec.setSearchMethod(tree);
-    ec.setInputCloud(table2_filtered_cloud);
-    ec.extract(cluster_indices);
+    segmented_cloud = reg.getColoredCloud();
+    testPub_.publish(segmented_cloud);
 
     ROS_INFO_STREAM("Picking event occurred");
 
@@ -66,7 +41,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     bool done = false;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-    kdtree.setInputCloud(table2_filtered_cloud);
+    kdtree.setInputCloud(segmented_cloud);
     std::vector<int> pointIdxNKNSearch(1);
     std::vector<float> pointNKNSquaredDistance(1);
 
@@ -74,10 +49,10 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
 
     int pos = pointIdxNKNSearch[0];
 
-    for (pcl::PointIndices p : cluster_indices) {
+    for (pcl::PointIndices p : clusters) {
         cloud_cluster.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
         for (const auto& idx : p.indices) {
-            cloud_cluster->push_back((*table2_filtered_cloud)[idx]);
+            cloud_cluster->push_back((*segmented_cloud)[idx]);
             if (idx == pos) {
                 cloud_cluster->width = cloud_cluster->size();
                 cloud_cluster->height = 1;
