@@ -96,8 +96,8 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
 // }
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
-    // pcl::PointCloud<point>::Ptr vox_filtered_cloud(new pcl::PointCloud<point>);
     pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+    pcl::PointCloud<point>::Ptr table_filtered_cloud(new pcl::PointCloud<point>);
     std::vector<pcl::PointIndices> clusters;
 
     // Down sample the point cloud
@@ -115,9 +115,29 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     pass.setFilterLimits(0.0, 1.0);
     pass.filter(*indices);
 
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+    // Create the segmentation object
+    pcl::SACSegmentation<point> seg;
+    // Optional
+    seg.setOptimizeCoefficients(true);
+    // Mandatory
+    seg.setModelType(pcl::SACMODEL_PLANE);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setDistanceThreshold(0.01);
+    seg.setIndices(indices);
+
+    seg.setInputCloud(inputCloud);
+    seg.segment(*inliers, *coefficients);
+
+    pcl::ExtractIndices<point> extract;
+    extract.setInputCloud(inputCloud);
+    extract.setIndices(inliers);
+    extract.setNegative(true);
+    extract.filter(*table_filtered_cloud);
+
     pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
-    reg.setInputCloud(inputCloud);
-    reg.setIndices(indices);
+    reg.setInputCloud(table_filtered_cloud);
     reg.setSearchMethod(tree);
     reg.setDistanceThreshold(10);
     reg.setPointColorThreshold(6);
