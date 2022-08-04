@@ -97,44 +97,14 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
     pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+    pcl::PointCloud<point>::Ptr background_filtered(new pcl::PointCloud<point>);
     pcl::PointCloud<point>::Ptr table_filtered_cloud(new pcl::PointCloud<point>);
     std::vector<pcl::PointIndices> clusters;
 
-    // Down sample the point cloud
-    // pcl::VoxelGrid<point> voxelFilter;
-    // voxelFilter.setInputCloud(inputCloud);
-    // voxelFilter.setLeafSize(0.0175f, 0.0175f, 0.0175f);
-    // voxelFilter.filter(*vox_filtered_cloud);
+    background_filtered = filterDistance(inputCloud, 0.0, 1.0);
+    table_filtered_cloud = filterTable(background_filtered);
 
     pcl::search::Search<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
-
-    pcl::IndicesPtr indices(new std::vector<int>);
-    pcl::PassThrough<pcl::PointXYZRGB> pass;
-    pass.setInputCloud(inputCloud);
-    pass.setFilterFieldName("z");
-    pass.setFilterLimits(0.0, 1.0);
-    pass.filter(*indices);
-
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-    // Create the segmentation object
-    pcl::SACSegmentation<point> seg;
-    // Optional
-    seg.setOptimizeCoefficients(true);
-    // Mandatory
-    seg.setModelType(pcl::SACMODEL_PLANE);
-    seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setDistanceThreshold(0.01);
-    seg.setIndices(indices);
-
-    seg.setInputCloud(inputCloud);
-    seg.segment(*inliers, *coefficients);
-
-    pcl::ExtractIndices<point> extract;
-    extract.setInputCloud(inputCloud);
-    extract.setIndices(inliers);
-    extract.setNegative(true);
-    extract.filter(*table_filtered_cloud);
 
     pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
     reg.setInputCloud(table_filtered_cloud);
@@ -202,4 +172,46 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
 
     cloud_cluster->header.frame_id = inputCloud->header.frame_id;
     clusterPub_.publish(cloud_cluster);
+}
+
+pcl::PointCloud<point>::Ptr filterDistance(const pcl::PointCloud<point>::Ptr inputCloud, double fromDistance, double toDistance) {
+    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+    pcl::IndicesPtr indices(new std::vector<int>);
+    pcl::PassThrough<pcl::PointXYZRGB> pass;
+    pass.setInputCloud(inputCloud);
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(fromDistance, toDistance);
+    pass.filter(*indices);
+
+    pcl::ExtractIndices<point> extract;
+    extract.setInputCloud(inputCloud);
+    extract.setIndices(indices);
+    extract.filter(*segmented_cloud);
+    return segmented_cloud;
+}
+
+pcl::PointCloud<point>::Ptr filterTable(const pcl::PointCloud<point>::Ptr inputCloud) {
+    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+    // Create the segmentation object
+    pcl::SACSegmentation<point> seg;
+    // Optional
+    seg.setOptimizeCoefficients(true);
+    // Mandatory
+    seg.setModelType(pcl::SACMODEL_PLANE);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setDistanceThreshold(0.015);
+
+    seg.setInputCloud(inputCloud);
+    seg.segment(*inliers, *coefficients);
+
+    pcl::ExtractIndices<point> extract;
+    extract.setInputCloud(inputCloud);
+    extract.setIndices(inliers);
+    extract.setNegative(true);
+    extract.filter(*segmented_cloud);
+
+    return segmented_cloud;
 }

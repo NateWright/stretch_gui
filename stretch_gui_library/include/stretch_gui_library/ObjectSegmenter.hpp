@@ -49,4 +49,7 @@ class ObjectSegmenter {
     void segmentAndFind(const pcl::PointCloud<point>::Ptr&, const point);
 };
 
+pcl::PointCloud<point>::Ptr filterDistance(const pcl::PointCloud<point>::Ptr, double fromDistance, double toDistance);
+pcl::PointCloud<point>::Ptr filterTable(const pcl::PointCloud<point>::Ptr);
+
 typedef std::shared_ptr<ObjectSegmenter> ObjectSegmenterPtr;
