@@ -33,32 +33,6 @@ void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
     mapSize_.setHeight(height);
     resolution_ = msg.get()->info.resolution;
     origin_ = QPoint(width + msg.get()->info.origin.position.x / resolution_, -msg.get()->info.origin.position.y / resolution_);
-
-    // cv::Mat mapImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
-    // int val = 0;
-    // for (int y = 0; y < height; y++) {
-    //     for (int x = 0; x < width; x++) {
-    //         cv::Vec3b color = mapImage.at<cv::Vec3b>(cv::Point(x, y));
-    //         int occupancyProb = (int)msg->data[x + width * y];
-    //         if (occupancyProb == -1) {
-    //             val = 100;
-    //         } else if (occupancyProb == 100) {
-    //             val = 0;
-    //         } else {
-    //             val = 255;
-    //         }
-    //         color[0] = val;
-    //         color[1] = val;
-    //         color[2] = val;
-    //         mapImage.at<cv::Vec3b>(cv::Point(width - 1 - x, y)) = color;
-    //     }
-    // }
-    // mapImage_.reset(new cv_bridge::CvImage());
-    // mapImage_->header = msg->header;
-    // mapImage_->encoding = sensor_msgs::image_encodings::RGB8;
-    // mapImage_->image = mapImage;
-    // mapImageCopy_ = mapImage_;
-    // mapPub_.publish(mapImage_->toImageMsg());
 }
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
@@ -142,15 +116,8 @@ void MapSubscriber::navigateToPoint(const geometry_msgs::PointStamped::ConstPtr&
     std::string source = "map";
     std::string destination = "base_link";
     try {
-        //        qDebug() << "point x: " << input.get()->point.x;
-        //        qDebug() << "point y: " << input.get()->point.y;
-        geometry_msgs::PointStamped point = tfBuffer_.transform(*input.get(), "map");
+        geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "map");
         geometry_msgs::TransformStamped transBaseLinkToMap = tfBuffer_.lookupTransform(source, destination, ros::Time(0));
-
-        //        qDebug() << "point x: " << point.point.x;
-        //        qDebug() << "point y: " << point.point.y;
-        //        qDebug() << "pos x: " << transBaseLinkToMap.transform.translation.x;
-        //        qDebug() << "pos y: " << transBaseLinkToMap.transform.translation.y;
 
         const double x = point.point.x - transBaseLinkToMap.transform.translation.x,
                      y = point.point.y - transBaseLinkToMap.transform.translation.y;
@@ -184,14 +151,14 @@ void MapSubscriber::navigateToPoint(const geometry_msgs::PointStamped::ConstPtr&
 }
 
 void MapSubscriber::checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input) {
-    const double minDistance = 1.00;
+    const double maxDistance = 1.00;
     try {
         geometry_msgs::PointStamped point = tfBuffer_.transform(*input.get(), "base_link");
 
-        const double x = point.point.x,
-                     y = point.point.y;
+        const double xSquared = point.point.x * point.point.x,
+                     ySquared = point.point.y * point.point.y;
 
-        if (x * x + y * y < minDistance * minDistance) {
+        if (xSquared + ySquared < maxDistance * maxDistance) {
             emit validPoint();
             return;
         }

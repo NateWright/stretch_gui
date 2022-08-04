@@ -44,7 +44,6 @@ class RosCamera : public QThread {
     ros::Subscriber centerPointSub_;
 
     ros::Publisher pointPick_;
-    ros::Publisher cloudToSegment_;
     ros::Publisher cameraPub_;
 
     ros::AsyncSpinner *spinner_;

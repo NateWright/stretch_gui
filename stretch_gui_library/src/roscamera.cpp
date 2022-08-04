@@ -8,7 +8,6 @@ RosCamera::RosCamera(ros::NodeHandlePtr nh) : nh_(nh) {
     segmentedCameraSub_ = nh_->subscribe("/stretch_pc/cluster", 30, &RosCamera::segmentedCameraCallback, this);
     pointPick_ = nh->advertise<geometry_msgs::PointStamped>("/clicked_point", 30);
     centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &RosCamera::centerPointCallback, this);
-    cloudToSegment_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_gui/cloud", 30);
     cameraPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image", 30);
     moveToThread(this);
 }
@@ -73,7 +72,6 @@ void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
     int locX = press.x() * static_cast<double>(cloud_->height) / static_cast<double>(screen.width());
     int locY = press.y() * static_cast<double>(cloud_->width) / static_cast<double>(screen.height());
 
-    cloudToSegment_.publish(cloud_);
     try {
         if (locY > cloud_->width || locX > cloud_->height) {
             throw(std::runtime_error("Not in range"));
