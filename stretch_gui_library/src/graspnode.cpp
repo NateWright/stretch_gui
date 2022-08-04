@@ -205,7 +205,7 @@ void GraspNode::stowObject() {
 
 void GraspNode::home() {
     ros::Duration d(0.25);
-    //  emit armSetHeight(1.05);
+    emit armSetHeight(pointBaseLink_->point.z + 0.05);
     d.sleep();
     emit armSetReach();
     d.sleep();
