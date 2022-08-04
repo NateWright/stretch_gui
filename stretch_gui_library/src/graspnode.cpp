@@ -132,7 +132,7 @@ void GraspNode::replaceObjectOffset(double offset) {
     ros::AsyncSpinner s(1);
     s.start();
     ros::Duration d(1.0);
-    emit disableMapping();
+    emit enableMapping();
 
     emit navigate(homePose_);
     d.sleep();
@@ -141,6 +141,7 @@ void GraspNode::replaceObjectOffset(double offset) {
     while (emit moving()) {
         d.sleep();
     }
+    emit disableMapping();
 
     cmdMsg_.angular.z = -cmdMsg_.angular.z;
     ros::Duration turnTime(turnTime_);
