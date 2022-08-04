@@ -49,7 +49,7 @@ void RosCamera::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>:
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(cloud_);
-    const int count = 20;
+    const int count = 1;
     std::vector<int> pointIdxNKNSearch(count);
     std::vector<float> pointNKNSquaredDistance(count);
 
