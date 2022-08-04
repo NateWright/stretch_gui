@@ -13,7 +13,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     // Down sample the point cloud
     pcl::VoxelGrid<point> voxelFilter;
     voxelFilter.setInputCloud(inputCloud);
-    voxelFilter.setLeafSize(0.01f, 0.01f, 0.01f);
+    voxelFilter.setLeafSize(0.02f, 0.02f, 0.02f);
     voxelFilter.filter(*vox_filtered_cloud);
 
     // Remove table from scene
