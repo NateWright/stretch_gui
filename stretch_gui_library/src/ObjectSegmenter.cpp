@@ -100,14 +100,17 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
     std::vector<pcl::PointIndices> clusters;
 
+    pcl::IndicesPtr indices(new std::vector<int>);
+    pcl::removeNaNFromPointCloud(*inputCloud, *indices);
+
     // Down sample the point cloud
     pcl::VoxelGrid<point> voxelFilter;
     voxelFilter.setInputCloud(inputCloud);
+    voxelFilter.setIndices(indices);
     voxelFilter.setLeafSize(0.015f, 0.015f, 0.015f);
     voxelFilter.filter(*vox_filtered_cloud);
 
     pcl::search::Search<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
-    pcl::IndicesPtr indices(new std::vector<int>);
 
     pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
     reg.setInputCloud(vox_filtered_cloud);
