@@ -42,6 +42,7 @@ class ObjectSegmenter {
     // Publishers and Subscribers
     ros::Publisher clusterPub_;
     ros::Publisher pointPub_;
+    ros::Publisher testPub_;
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);

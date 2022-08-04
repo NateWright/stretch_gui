@@ -3,6 +3,7 @@
 ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     clusterPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/cluster", 1000);
     pointPub_ = nh_->advertise<geometry_msgs::PointStamped>("/stretch_pc/centerPoint", 1000);
+    testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_gui/testCloud", 100);
 }
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
@@ -42,6 +43,8 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     extract.setIndices(inliers);
     extract.setNegative(true);
     extract.filter(*table2_filtered_cloud);
+
+    testPub_.publish(table2_filtered_cloud);
 
     pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
     tree->setInputCloud(table2_filtered_cloud);
