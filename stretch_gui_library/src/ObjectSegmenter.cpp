@@ -123,8 +123,6 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     reg.setPointColorThreshold(6);
     reg.setRegionColorThreshold(5);
     reg.setMinClusterSize(600);
-
-    std::vector<pcl::PointIndices> clusters;
     reg.extract(clusters);
 
     segmented_cloud = reg.getColoredCloud();
