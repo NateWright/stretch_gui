@@ -106,7 +106,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     // Down sample the point cloud
     pcl::VoxelGrid<point> voxelFilter;
     voxelFilter.setInputCloud(inputCloud);
-    voxelFilter.setIndices(indices);
+    // voxelFilter.setIndices(indices);
     voxelFilter.setLeafSize(0.015f, 0.015f, 0.015f);
     voxelFilter.filter(*vox_filtered_cloud);
 
