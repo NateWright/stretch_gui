@@ -7,7 +7,7 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 10);
 }
 
-void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& inputCloud, int posX, int posY) {
+void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
     pcl::PointCloud<point>::Ptr vox_filtered_cloud(new pcl::PointCloud<point>);
     pcl::PointCloud<point>::Ptr table_filtered_cloud(new pcl::PointCloud<point>);
     pcl::PointCloud<point>::Ptr table2_filtered_cloud(new pcl::PointCloud<point>);
@@ -65,8 +65,6 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<pcl::PointXYZRGB>::Pt
 
     ROS_INFO_STREAM("Looking for cluster");
     bool done = false;
-
-    point pointToFind = inputCloud->at(posY * inputCloud->width + posX);
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(table2_filtered_cloud);

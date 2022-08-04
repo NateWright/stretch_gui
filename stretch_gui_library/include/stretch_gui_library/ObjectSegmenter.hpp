@@ -46,7 +46,7 @@ class ObjectSegmenter {
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
-    void segmentAndFind(const pcl::PointCloud<point>::Ptr&, int posX, int posY);
+    void segmentAndFind(const pcl::PointCloud<point>::Ptr&, const point);
 };
 
 typedef std::shared_ptr<ObjectSegmenter> ObjectSegmenterPtr;
