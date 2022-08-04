@@ -108,6 +108,7 @@ void GraspNode::lineUpOffset(double offset) {
     emit armSetReach(sqrt(pointBaseLink_->point.x * pointBaseLink_->point.x + pointBaseLink_->point.y * pointBaseLink_->point.y) - offset);
     d.sleep();
     d.sleep();
+    d.sleep();
     emit armSetHeight(pointBaseLink_->point.z);
 
     emit graspDone(true);
