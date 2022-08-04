@@ -26,7 +26,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     reg.setDistanceThreshold(10);
     reg.setPointColorThreshold(6);
     reg.setRegionColorThreshold(5);
-    reg.setMinClusterSize(600);
+    reg.setMinClusterSize(5);
 
     reg.extract(clusters);
 
