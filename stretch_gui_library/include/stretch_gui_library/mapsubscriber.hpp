@@ -48,7 +48,6 @@ class MapSubscriber : public QThread {
     ros::Subscriber posSub_;
     ros::Publisher movePub_;
     ros::Publisher mapPub_;
-    ros::Publisher mapColoredPub_;
 
     ros::AsyncSpinner* spinner_;
 

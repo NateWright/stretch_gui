@@ -9,7 +9,6 @@ MapSubscriber::MapSubscriber(ros::NodeHandlePtr nodeHandle)
     posSub_ = nh_->subscribe(odomTopic, 30, &MapSubscriber::posCallback, this);
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
     mapPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map", 30, true);
-    mapColoredPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map_color", 30, true);
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
     moveToThread(this);
 }
