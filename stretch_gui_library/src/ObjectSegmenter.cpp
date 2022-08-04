@@ -96,27 +96,35 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
 // }
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
-    pcl::PointCloud<point>::Ptr vox_filtered_cloud(new pcl::PointCloud<point>);
+    // pcl::PointCloud<point>::Ptr vox_filtered_cloud(new pcl::PointCloud<point>);
     pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
     std::vector<pcl::PointIndices> clusters;
 
     // Down sample the point cloud
-    pcl::VoxelGrid<point> voxelFilter;
-    voxelFilter.setInputCloud(inputCloud);
-    voxelFilter.setLeafSize(0.0175f, 0.0175f, 0.0175f);
-    voxelFilter.filter(*vox_filtered_cloud);
+    // pcl::VoxelGrid<point> voxelFilter;
+    // voxelFilter.setInputCloud(inputCloud);
+    // voxelFilter.setLeafSize(0.0175f, 0.0175f, 0.0175f);
+    // voxelFilter.filter(*vox_filtered_cloud);
 
     pcl::search::Search<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+
     pcl::IndicesPtr indices(new std::vector<int>);
+    pcl::PassThrough<pcl::PointXYZRGB> pass;
+    pass.setInputCloud(inputCloud);
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(0.0, 1.0);
+    pass.filter(*indices);
 
     pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
-    reg.setInputCloud(vox_filtered_cloud);
+    reg.setInputCloud(inputCloud);
+    reg.setIndices(indices);
     reg.setSearchMethod(tree);
     reg.setDistanceThreshold(10);
     reg.setPointColorThreshold(6);
     reg.setRegionColorThreshold(5);
-    reg.setMinClusterSize(5);
+    reg.setMinClusterSize(600);
 
+    std::vector<pcl::PointIndices> clusters;
     reg.extract(clusters);
 
     segmented_cloud = reg.getColoredCloud();
