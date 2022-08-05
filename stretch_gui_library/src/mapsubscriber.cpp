@@ -1,12 +1,9 @@
 #include "mapsubscriber.hpp"
 
 MapSubscriber::MapSubscriber(ros::NodeHandlePtr nodeHandle)
-    : nh_(nodeHandle), sync_(mapSub_, mapPointCloudSub_, 30), robotPos_(QPoint(0, 0)), drawPos_(false), drawMouseArrow_(false) {
-    mapSub_.subscribe(*nh_, "/map", 1);
-    mapPointCloudSub_.subscribe(*nh_, "/rtabmap/cloud_ground", 1);
-    sync_.registerCallback(boost::bind(&MapSubscriber::mapCallback, this, _1, _2));
-    // mapSub_ = nh_->subscribe("/map", 30, &MapSubscriber::mapCallback, this);
-    // mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
+    : nh_(nodeHandle), robotPos_(QPoint(0, 0)) {
+    mapSub_ = nh_->subscribe("/map", 30, &MapSubscriber::mapCallback, this);
+    mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
     std::string odomTopic;
     nh_->getParam("/stretch_gui/odom", odomTopic);
     posSub_ = nh_->subscribe(odomTopic, 30, &MapSubscriber::posCallback, this);
@@ -25,51 +22,27 @@ MapSubscriber::~MapSubscriber() {
 void MapSubscriber::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
+    mapMsg_ = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/map");
     exec();
 }
 
-void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& grid,
-                                const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud) {
-    ROS_INFO_STREAM("function called");
-    const int width = grid->info.width,
-              height = grid->info.height;
+void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
+    mapMsg_ = msg;
+}
+
+void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+    nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
+    const int width = msg->info.width,
+              height = msg->info.height;
 
     mapSize_.setWidth(width);
     mapSize_.setHeight(height);
-    resolution_ = grid->info.resolution;
-    origin_ = QPoint(width + grid->info.origin.position.x / resolution_, -grid->info.origin.position.y / resolution_);
+    resolution_ = msg->info.resolution;
+    const int originX = width + msg->info.origin.position.x / resolution_,
+              originY = -msg->info.origin.position.y / resolution_;
 
-    const int originX = origin_.x(),
-              originY = origin_.y();
-    cv::Mat mapImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
-    for (const auto& p : *cloud) {
-        mapImage.at<cv::Vec3b>(cv::Point(originX - p.x / resolution_, originY + p.y / resolution_)) = {p.r, p.g, p.b};
-    }
-    cv_bridge::CvImage::Ptr map(new cv_bridge::CvImage());
-    map->header.frame_id = cloud->header.frame_id;
-    map->encoding = sensor_msgs::image_encodings::RGB8;
-    map->image = mapImage;
-    mapPub_.publish(map->toImageMsg());
-}
+    origin_ = QPoint(originX, originY);
 
-// void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
-//     const int width = msg.get()->info.width,
-//               height = msg.get()->info.height;
-
-//     mapSize_.setWidth(width);
-//     mapSize_.setHeight(height);
-//     resolution_ = msg.get()->info.resolution;
-//     origin_ = QPoint(width + msg.get()->info.origin.position.x / resolution_, -msg.get()->info.origin.position.y / resolution_);
-// }
-
-void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-    int width = mapSize_.width(),
-        height = mapSize_.height(),
-        originX = origin_.x(),
-        originY = origin_.y();
-    if (!width || !height || !originX || !originY) {
-        return;
-    }
     cv::Mat mapImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
     for (const auto& p : *cloud) {
         mapImage.at<cv::Vec3b>(cv::Point(originX - p.x / resolution_, originY + p.y / resolution_)) = {p.r, p.g, p.b};
@@ -93,8 +66,6 @@ void MapSubscriber::posCallback(const nav_msgs::Odometry::ConstPtr& msg) {
         robotPos_.setX(origin_.x() - transBaseLinkToMap.transform.translation.x / resolution_);
         robotPos_.setY(origin_.y() + transBaseLinkToMap.transform.translation.y / resolution_);
         emit robotPose(robotPos_, robotRot_);
-
-        drawPos_ = true;
     } catch (...) {
     }
 }
@@ -103,7 +74,6 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
     if (press == release) {
         return;
     }
-    drawMouseArrow_ = false;
     geometry_msgs::PoseStamped pose;
 
     QPoint mapLoc = translateScreenToMap(press, screen, mapSize_);
@@ -180,7 +150,7 @@ void MapSubscriber::navigateToPoint(const geometry_msgs::PointStamped::ConstPtr&
 void MapSubscriber::checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input) {
     const double maxDistance = 1.00;
     try {
-        geometry_msgs::PointStamped point = tfBuffer_.transform(*input.get(), "base_link");
+        geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "base_link");
 
         const double xSquared = point.point.x * point.point.x,
                      ySquared = point.point.y * point.point.y;

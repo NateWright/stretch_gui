@@ -5,8 +5,6 @@
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <cv_bridge/cv_bridge.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <message_filters/subscriber.h>
-#include <message_filters/time_synchronizer.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
 #include <pcl/point_types.h>
@@ -36,9 +34,6 @@ namespace MAPSUBSCRIBER {
 const QImage::Format FORMAT = QImage::Format_RGB444;
 }
 
-typedef nav_msgs::OccupancyGrid::ConstPtr OccupancyGrid;
-typedef pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr PointCloud;
-
 class MapSubscriber : public QThread {
     Q_OBJECT
    public:
@@ -48,9 +43,8 @@ class MapSubscriber : public QThread {
 
    private:
     ros::NodeHandlePtr nh_;
-    message_filters::Subscriber<nav_msgs::OccupancyGrid> mapSub_;
-    message_filters::Subscriber<pcl::PointCloud<pcl::PointXYZRGB>> mapPointCloudSub_;
-    message_filters::TimeSynchronizer<nav_msgs::OccupancyGrid, pcl::PointCloud<pcl::PointXYZRGB>> sync_;
+    ros::Subscriber mapSub_;
+    ros::Subscriber mapPointCloudSub_;
     ros::Subscriber posSub_;
     ros::Publisher movePub_;
     ros::Publisher mapPub_;
@@ -69,13 +63,11 @@ class MapSubscriber : public QThread {
 
     double resolution_;
 
-    bool drawMouseArrow_;
-    QPoint mousePressLocation_;
-    QPoint mousePressCurrentLocation_;
-
     geometry_msgs::PoseStamped robotHome_;
+    nav_msgs::OccupancyGrid::ConstPtr mapMsg_;
 
-    void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr&, const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&);
+    void
+    mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
     void posCallback(const nav_msgs::Odometry::ConstPtr& msg);
     void mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr);
    signals:
