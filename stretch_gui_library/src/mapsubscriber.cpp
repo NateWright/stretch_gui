@@ -105,7 +105,10 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
     pose.pose.orientation.z = q.z();
     pose.pose.orientation.w = q.w();
 
-    ROS_INFO_STREAM(q);
+    ROS_INFO_STREAM("x " << q.x());
+    ROS_INFO_STREAM("y " << q.y());
+    ROS_INFO_STREAM("z " << q.z());
+    ROS_INFO_STREAM("w " << q.w());
 
     movePub_.publish(pose);
 }
