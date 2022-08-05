@@ -36,6 +36,9 @@ void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
 }
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+    ROS_INFO_STREAM(cloud->width);
+    ROS_INFO_STREAM(cloud->height);
+
     int width = mapSize_.width(),
         height = mapSize_.height(),
         originX = origin_.x(),
