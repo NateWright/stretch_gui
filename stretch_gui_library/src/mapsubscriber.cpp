@@ -31,10 +31,11 @@ void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
     ros::Duration d(1);
-    while (!mapMsg_) {
-        d.sleep();
-    }
     nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
+    while (!msg) {
+        d.sleep();
+        msg = mapMsg_;
+    }
     const int width = msg->info.width,
               height = msg->info.height;
 
@@ -103,6 +104,8 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
     pose.pose.orientation.y = q.y();
     pose.pose.orientation.z = q.z();
     pose.pose.orientation.w = q.w();
+
+    ROS_INFO_STREAM(q);
 
     movePub_.publish(pose);
 }
