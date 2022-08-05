@@ -22,7 +22,6 @@ MapSubscriber::~MapSubscriber() {
 void MapSubscriber::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
-    mapMsg_ = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/map");
     exec();
 }
 
@@ -31,10 +30,11 @@ void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
 }
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-    nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
-    if (!msg) {
-        return;
+    ros::Duration d(1);
+    while (!mapMsg_) {
+        d.sleep();
     }
+    nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
     const int width = msg->info.width,
               height = msg->info.height;
 
