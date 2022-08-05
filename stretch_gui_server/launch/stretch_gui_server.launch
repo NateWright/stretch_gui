@@ -1,6 +1,8 @@
 <launch>
   <arg name="sim" />
 
+  <node name="web_video_server" pkg="web_video_server" type="web_video_server" output="none" />
+
   <group if="$(arg sim)">
     <include file="$(find stretch_gui_server)/launch/stretch_gazebo.xml"/>
     <node name="stretch_gui" pkg="stretch_gui_server" type="server_node" output="screen">
