@@ -1,9 +1,12 @@
 #include "mapsubscriber.hpp"
 
 MapSubscriber::MapSubscriber(ros::NodeHandlePtr nodeHandle)
-    : nh_(nodeHandle), robotPos_(QPoint(0, 0)), drawPos_(false), drawMouseArrow_(false) {
-    mapSub_ = nh_->subscribe("/map", 30, &MapSubscriber::mapCallback, this);
-    mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
+    : nh_(nodeHandle), sync_(mapSub_, mapPointCloudSub_, 30), robotPos_(QPoint(0, 0)), drawPos_(false), drawMouseArrow_(false) {
+    mapSub_.subscribe(*nh_, "/map", 1);
+    mapPointCloudSub_.subscribe(*nh_, "/rtabmap/cloud_ground", 1);
+    sync_.registerCallback(boost::bind(&MapSubscriber::mapCallback, this, _1, _2));
+    // mapSub_ = nh_->subscribe("/map", 30, &MapSubscriber::mapCallback, this);
+    // mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
     std::string odomTopic;
     nh_->getParam("/stretch_gui/odom", odomTopic);
     posSub_ = nh_->subscribe(odomTopic, 30, &MapSubscriber::posCallback, this);
@@ -25,15 +28,38 @@ void MapSubscriber::run() {
     exec();
 }
 
-void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
-    const int width = msg.get()->info.width,
-              height = msg.get()->info.height;
+void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& grid,
+                                const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud) {
+    const int width = grid->info.width,
+              height = grid->info.height;
 
     mapSize_.setWidth(width);
     mapSize_.setHeight(height);
-    resolution_ = msg.get()->info.resolution;
-    origin_ = QPoint(width + msg.get()->info.origin.position.x / resolution_, -msg.get()->info.origin.position.y / resolution_);
+    resolution_ = grid->info.resolution;
+    origin_ = QPoint(width + grid->info.origin.position.x / resolution_, -grid->info.origin.position.y / resolution_);
+
+    const int originX = origin_.x(),
+              originY = origin_.y();
+    cv::Mat mapImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
+    for (const auto& p : *cloud) {
+        mapImage.at<cv::Vec3b>(cv::Point(originX - p.x / resolution_, originY + p.y / resolution_)) = {p.r, p.g, p.b};
+    }
+    cv_bridge::CvImage::Ptr map(new cv_bridge::CvImage());
+    map->header.frame_id = cloud->header.frame_id;
+    map->encoding = sensor_msgs::image_encodings::RGB8;
+    map->image = mapImage;
+    mapPub_.publish(map->toImageMsg());
 }
+
+// void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
+//     const int width = msg.get()->info.width,
+//               height = msg.get()->info.height;
+
+//     mapSize_.setWidth(width);
+//     mapSize_.setHeight(height);
+//     resolution_ = msg.get()->info.resolution;
+//     origin_ = QPoint(width + msg.get()->info.origin.position.x / resolution_, -msg.get()->info.origin.position.y / resolution_);
+// }
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
     int width = mapSize_.width(),
