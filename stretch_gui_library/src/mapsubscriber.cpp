@@ -100,17 +100,17 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
     tf2::Quaternion q = tf2::shortestArcQuat(v1, v2);
     q.setZ(-q.z());
 
+    if (q.y() < 0 || q.y() > 0) {
+        q.setX(0);
+        q.setY(0);
+        q.setZ(-1);
+        q.setW(0);
+    }
+
     pose.pose.orientation.x = q.x();
     pose.pose.orientation.y = q.y();
     pose.pose.orientation.z = q.z();
     pose.pose.orientation.w = q.w();
-
-    q.normalize();
-
-    ROS_INFO_STREAM("x " << q.x());
-    ROS_INFO_STREAM("y " << q.y());
-    ROS_INFO_STREAM("z " << q.z());
-    ROS_INFO_STREAM("w " << q.w());
 
     movePub_.publish(pose);
 }
