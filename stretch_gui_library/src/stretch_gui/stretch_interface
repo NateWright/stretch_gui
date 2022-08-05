@@ -91,6 +91,8 @@ class stretch_interface(hm.HelloNode):
             home = rospy.ServiceProxy("/calibrate_the_robot", Trigger)
             home()
         self.stow_robot()
+        navigation = rospy.ServiceProxy("/switch_to_navigation_mode", Trigger)
+        navigation()
 
         rate = rospy.Rate(self.rate)
         while not rospy.is_shutdown() and KeyboardInterrupt:
