@@ -30,6 +30,7 @@ void MapSubscriber::run() {
 
 void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& grid,
                                 const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud) {
+    ROS_INFO_STREAM("function called");
     const int width = grid->info.width,
               height = grid->info.height;
 
