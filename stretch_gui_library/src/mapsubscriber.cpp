@@ -32,6 +32,9 @@ void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
 
 void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
     nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
+    if (!msg) {
+        return;
+    }
     const int width = msg->info.width,
               height = msg->info.height;
 
