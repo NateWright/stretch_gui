@@ -10,7 +10,7 @@ stretch_gui is meant to utilize all aspects of stretch to navigate and grasps ob
 
 ```shell
 cd ~/catkin_ws/src
-git clone https://github.com/hello-robot/stretch_ros -b dev/noetic
+git clone https://github.com/NateWright/stretch_ros.git -b dev/noetic
 git clone https://github.com/NateWright/stretch_gui.git
 git clone https://github.com/pal-robotics/realsense_gazebo_plugin
 cd ~/catkin_ws
@@ -37,7 +37,7 @@ roslaunch stretch_gui_server stretch_gui_server.launch sim:=true
 
 ```shell
 cd ~/catkin_ws/src
-git clone https://github.com/hello-robot/stretch_ros -b dev/noetic
+git clone https://github.com/NateWright/stretch_ros.git -b dev/noetic
 git clone https://github.com/NateWright/stretch_gui.git
 cd ~/catkin_ws
 rosdep install --from-paths src --ignore-src -r -y
