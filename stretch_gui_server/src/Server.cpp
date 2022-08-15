@@ -181,7 +181,10 @@ void Server::uiConfirmButtonNoClicked() { emit ConfirmButtonNoClicked(); }
 void Server::uiConfirmButtonYesClicked() { emit ConfirmButtonYesClicked(); }
 
 // Grasp Page
-void Server::uiButtonStopReplaceClicked() { emit ButtonStopReplaceClicked(); }
+void Server::uiButtonStopReplaceClicked() {
+    ROS_INFO_STREAM("Server got it");
+    emit ButtonStopReplaceClicked();
+}
 void Server::uiButtonBackClicked() { emit ButtonBackClicked(); }
 void Server::uiButtonStowObjectClicked() { emit ButtonStowObjectClicked(); }
 void Server::uiButtonReleaseClicked() { emit ButtonReleaseClicked(); }

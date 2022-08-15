@@ -78,7 +78,10 @@ class GraspNode : public QThread {
     void lineUpOffset(double offset);
     void replaceObjectOffset(double offset);
     void replaceObject();
-    void stopReplace() { stopReplace_ = true; }
+    void stopReplace() {
+        ROS_INFO_STREAM("Grasp got it");
+        stopReplace_ = true;
+    }
     void stowObject();
     void home();
     void releaseObject();
