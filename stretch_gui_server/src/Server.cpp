@@ -83,6 +83,7 @@ void Server::initConnections() {
     connect(graspNode_, &GraspNode::canNavigate, this, &Server::setCanNavigate_);
     connect(graspNode_, &GraspNode::hasObject, this, &Server::setHasObject_);
 
+    connect(this, &Server::ButtonStopReplaceClicked, graspNode_, &GraspNode::stopReplace);
     connect(this, &Server::ButtonBackClicked, graspNode_, &GraspNode::home);                    // Client to Server
     connect(this, &Server::ButtonBackClicked, this, &Server::changeToSelectScreen);             // Client to Both
     connect(this, &Server::ButtonStowObjectClicked, graspNode_, &GraspNode::stowObject);        // Client to server
@@ -180,6 +181,7 @@ void Server::uiConfirmButtonNoClicked() { emit ConfirmButtonNoClicked(); }
 void Server::uiConfirmButtonYesClicked() { emit ConfirmButtonYesClicked(); }
 
 // Grasp Page
+void Server::uiButtonStopReplaceClicked() { emit ButtonStopReplaceClicked(); }
 void Server::uiButtonBackClicked() { emit ButtonBackClicked(); }
 void Server::uiButtonStowObjectClicked() { emit ButtonStowObjectClicked(); }
 void Server::uiButtonReleaseClicked() { emit ButtonReleaseClicked(); }

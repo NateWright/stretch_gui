@@ -50,6 +50,7 @@ class Server {
 
   // Grasp Page
 
+  SLOT(void uiButtonStopReplaceClicked())
   SLOT(void uiButtonBackClicked())
   SLOT(void uiButtonStowObjectClicked())
   SLOT(void uiButtonReleaseClicked())

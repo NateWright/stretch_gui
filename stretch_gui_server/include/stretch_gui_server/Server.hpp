@@ -47,6 +47,7 @@ class Server : public ServerSimpleSource {
     void uiConfirmButtonYesClicked();
 
     // Grasp Page
+    void uiButtonStopReplaceClicked();
     void uiButtonBackClicked();
     void uiButtonStowObjectClicked();
     void uiButtonReleaseClicked();
@@ -95,6 +96,7 @@ class Server : public ServerSimpleSource {
 
     // Grasp Page
 
+    void ButtonStopReplaceClicked();
     void ButtonBackClicked();
     void ButtonStowObjectClicked();
     void ButtonReleaseClicked();

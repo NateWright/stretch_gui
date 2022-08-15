@@ -48,6 +48,7 @@ class GraspNode : public QThread {
     double horizontalOffset_;
 
     bool robotMoving_;
+    bool stopReplace_;
 
     void centerPointCallback(const geometry_msgs::PointStamped::ConstPtr &input);
 
@@ -77,6 +78,7 @@ class GraspNode : public QThread {
     void lineUpOffset(double offset);
     void replaceObjectOffset(double offset);
     void replaceObject();
+    void stopReplace() { stopReplace_ = true; }
     void stowObject();
     void home();
     void releaseObject();

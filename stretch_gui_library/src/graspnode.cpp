@@ -1,6 +1,6 @@
 #include "graspnode.hpp"
 
-GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false) {
+GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stopReplace_(false) {
     cmdVel_ = nh_->advertise<geometry_msgs::Twist>("/stretch/cmd_vel", 30);
     centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &GraspNode::centerPointCallback, this);
 
@@ -140,6 +140,10 @@ void GraspNode::replaceObjectOffset(double offset) {
 
     while (emit moving()) {
         d.sleep();
+        if (stopReplace_) {
+            stopReplace_ = false;
+            return;
+        }
     }
     emit disableMapping();
 
