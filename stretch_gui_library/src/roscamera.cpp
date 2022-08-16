@@ -43,11 +43,11 @@ void RosCamera::cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pc)
 }
 
 void RosCamera::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pc) {
-    const int width = cloud_->width, height = cloud_->height;
+    const int width = sceneClickCloud_->width, height = sceneClickCloud_->height;
     QSharedPointer<QImage> img = camera_;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-    kdtree.setInputCloud(cloud_);
+    kdtree.setInputCloud(sceneClickCloud_);
     const int count = 20;
     std::vector<int> pointIdxNKNSearch(count);
     std::vector<float> pointNKNSquaredDistance(count);
@@ -69,15 +69,20 @@ void RosCamera::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr&
 }
 
 void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
-    int locX = press.x() * static_cast<double>(cloud_->height) / static_cast<double>(screen.width());
-    int locY = press.y() * static_cast<double>(cloud_->width) / static_cast<double>(screen.height());
+    sceneClickCloud_ = cloud_;
+    if (!sceneClickCloud_ || sceneClickCloud_->size() == 0) {
+        emit clickFailure();
+        return;
+    }
+    int locX = press.x() * static_cast<double>(sceneClickCloud_->height) / static_cast<double>(screen.width());
+    int locY = press.y() * static_cast<double>(sceneClickCloud_->width) / static_cast<double>(screen.height());
 
     try {
-        if (locY > cloud_->width || locX > cloud_->height) {
+        if (locY > sceneClickCloud_->width || locX > sceneClickCloud_->height) {
             throw(std::runtime_error("Not in range"));
         }
         emit clickInitiated();
-        pcl::PointXYZRGB p = cloud_->at(locY, cloud_->height - locX);
+        pcl::PointXYZRGB p = sceneClickCloud_->at(locY, sceneClickCloud_->height - locX);
 
         if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
             qDebug() << "click fail";
@@ -85,13 +90,19 @@ void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
         }
 
         geometry_msgs::PointStamped::Ptr point(new geometry_msgs::PointStamped());
-        point->header.frame_id = cloud_->header.frame_id;
+        point->header.frame_id = sceneClickCloud_->header.frame_id;
 
         point->point.x = p.x;
         point->point.y = p.y;
         point->point.z = p.z;
 
-        segmenter_->segmentAndFind(cloud_, p);
+        try {
+            segmenter_->segmentAndFind(sceneClickCloud_, p);
+        } catch (...) {
+            ROS_INFO_STREAM("Point cloud was empty after segmentation");
+            emit clickFailure();
+            return;
+        }
         pointPick_.publish(point);
         emit clickSuccess();
     } catch (...) {

@@ -49,6 +49,7 @@ class RosCamera : public QThread {
     ros::AsyncSpinner *spinner_;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr sceneClickCloud_;
 
     QSharedPointer<QImage> camera_;
 
