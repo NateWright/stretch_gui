@@ -118,45 +118,6 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
 void MapSubscriber::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
     movePub_.publish(pose);
 }
-void MapSubscriber::navigateToPoint(const geometry_msgs::PointStamped::ConstPtr& input) {
-    //    qDebug() << "Begin";
-    const double minDistance = 0.50;
-    std::string source = "map";
-    std::string destination = "base_link";
-    try {
-        geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "map");
-        geometry_msgs::TransformStamped transBaseLinkToMap = tfBuffer_.lookupTransform(source, destination, ros::Time(0));
-
-        const double x = point.point.x - transBaseLinkToMap.transform.translation.x,
-                     y = point.point.y - transBaseLinkToMap.transform.translation.y;
-
-        if (x * x + y * y < minDistance * minDistance) {
-            return;
-        }
-
-        const double theta = atan(y / x);
-
-        geometry_msgs::PoseStamped pose;
-        pose.header.frame_id = "map";
-
-        pose.pose.position.x = point.point.x - minDistance * cos(theta);
-        pose.pose.position.y = point.point.y - minDistance * sin(theta);
-
-        tf2::Quaternion q;
-        q.setRPY(0, 0, theta);
-        q.setZ(-q.z());
-
-        pose.pose.orientation.x = q.x();
-        pose.pose.orientation.y = q.y();
-        pose.pose.orientation.z = q.z();
-        pose.pose.orientation.w = q.w();
-
-        movePub_.publish(pose);
-        //        qDebug() << "finished";
-    } catch (...) {
-        qDebug() << "failed";
-    }
-}
 
 void MapSubscriber::checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input) {
     const double maxDistance = 1.00;

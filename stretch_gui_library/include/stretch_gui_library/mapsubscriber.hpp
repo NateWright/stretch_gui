@@ -55,13 +55,11 @@ class MapSubscriber : public QThread {
     tf2_ros::TransformListener* tfListener_;
 
     QSize mapSize_;
-
-    bool drawPos_;
     QPoint origin_;
+    double resolution_;
+
     QPoint robotPos_;
     double robotRot_;
-
-    double resolution_;
 
     geometry_msgs::PoseStamped robotHome_;
     nav_msgs::OccupancyGrid::ConstPtr mapMsg_;
@@ -79,7 +77,6 @@ class MapSubscriber : public QThread {
    public slots:
     void moveRobot(QPoint press, QPoint release, QSize screen);
     void moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose);
-    void navigateToPoint(const geometry_msgs::PointStamped::ConstPtr& input);
     void checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input);
     void setHome();
     void setHomeIfNone();
