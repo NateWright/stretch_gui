@@ -181,7 +181,22 @@ void GraspNode::releaseObject() {
     emit armSetHeight(0.75);
     d.sleep();
     emit gripperSetGrip(30);
+    d.sleep();
+    emit armSetReach();
+    d.sleep();
+    emit headSetPan();
+    d.sleep();
+    emit gripperSetGrip();
+    d.sleep();
+    emit gripperSetRotate();
+    d.sleep();
+    emit armSetHeight();
+    d.sleep();
+    emit enableMapping();
+    d.sleep();
+    emit canNavigate(true);
     emit hasObject(false);
+    emit releaseDone();
 }
 
 void GraspNode::stowObject() {

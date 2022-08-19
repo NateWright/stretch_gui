@@ -70,6 +70,7 @@ class GraspNode : public QThread {
     void disableMapping();
     void hasObject(bool);
     void canNavigate(bool);
+    void releaseDone();
     bool moving();
    public slots:
     void setHorizontal();
@@ -79,7 +80,6 @@ class GraspNode : public QThread {
     void replaceObjectOffset(double offset);
     void replaceObject();
     void stopReplace() {
-        ROS_INFO_STREAM("Grasp got it");
         stopReplace_ = true;
     }
     void stowObject();

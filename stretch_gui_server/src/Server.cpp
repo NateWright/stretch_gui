@@ -84,8 +84,9 @@ void Server::initConnections() {
     connect(graspNode_, &GraspNode::hasObject, this, &Server::setHasObject_);
 
     connect(this, &Server::ButtonStopReplaceClicked, graspNode_, &GraspNode::stopReplace);
-    connect(this, &Server::ButtonBackClicked, graspNode_, &GraspNode::home);                    // Client to Server
-    connect(this, &Server::ButtonBackClicked, this, &Server::changeToSelectScreen);             // Client to Both
+    connect(this, &Server::ButtonBackClicked, graspNode_, &GraspNode::home);         // Client to Server
+    connect(this, &Server::ButtonBackClicked, this, &Server::changeToSelectScreen);  // Client to Both
+    connect(graspNode_, &GraspNode::releaseDone, this, &Server::changeToSelectScreen);
     connect(this, &Server::ButtonStowObjectClicked, graspNode_, &GraspNode::stowObject);        // Client to server
     connect(this, &Server::ButtonReleaseClicked, graspNode_, &GraspNode::releaseObject);        // Client to server
     connect(this, &Server::ButtonReplaceObjectClicked, graspNode_, &GraspNode::replaceObject);  // Client to server
