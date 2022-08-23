@@ -25,12 +25,12 @@ void GraspNode::run() {
 }
 
 void GraspNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& input) {
-    geometry_msgs::PointStamped point = tfBuffer_.transform(*input.get(), "map");
+    geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "map");
     point_.reset(new geometry_msgs::PointStamped());
-    *point_.get() = point;
-    point = tfBuffer_.transform(*input.get(), "base_link");
+    *point_ = point;
+    point = tfBuffer_.transform(*input, "base_link");
     pointBaseLink_.reset(new geometry_msgs::PointStamped());
-    *pointBaseLink_.get() = point;
+    *pointBaseLink_ = point;
 }
 
 void GraspNode::lineUp() {
