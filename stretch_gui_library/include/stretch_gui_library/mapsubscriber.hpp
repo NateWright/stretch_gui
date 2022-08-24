@@ -45,9 +45,9 @@ class MapSubscriber : public QThread {
     ros::NodeHandlePtr nh_;
     ros::Subscriber mapSub_;
     ros::Subscriber mapPointCloudSub_;
-    ros::Subscriber posSub_;
     ros::Publisher movePub_;
     ros::Publisher mapPub_;
+    ros::Timer posTimer_;
 
     ros::AsyncSpinner* spinner_;
 
@@ -64,9 +64,8 @@ class MapSubscriber : public QThread {
     geometry_msgs::PoseStamped robotHome_;
     nav_msgs::OccupancyGrid::ConstPtr mapMsg_;
 
-    void
-    mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
-    void posCallback(const nav_msgs::Odometry::ConstPtr& msg);
+    void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
+    void posCallback(const ros::TimerEvent&);
     void mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr);
    signals:
     void homeSet(bool);

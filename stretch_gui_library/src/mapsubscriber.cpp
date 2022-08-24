@@ -6,14 +6,15 @@ MapSubscriber::MapSubscriber(ros::NodeHandlePtr nodeHandle)
     mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
     std::string odomTopic;
     nh_->getParam("/stretch_gui/odom", odomTopic);
-    posSub_ = nh_->subscribe(odomTopic, 30, &MapSubscriber::posCallback, this);
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
     mapPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map", 30, true);
+    posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapSubscriber::posCallback, this);
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
     moveToThread(this);
 }
 
 MapSubscriber::~MapSubscriber() {
+    posTimer_.stop();
     spinner_->stop();
     delete spinner_;
     delete tfListener_;
@@ -22,6 +23,7 @@ MapSubscriber::~MapSubscriber() {
 void MapSubscriber::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
+    posTimer_.start();
     exec();
 }
 
@@ -58,7 +60,7 @@ void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB
     mapPub_.publish(map->toImageMsg());
 }
 
-void MapSubscriber::posCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+void MapSubscriber::posCallback(const ros::TimerEvent&) {
     std::string source = "map";
     std::string destination = "base_link";
 
@@ -120,16 +122,19 @@ void MapSubscriber::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
 }
 
 void MapSubscriber::setHome() {
-    std::string source = "map",
-                destination = "base_link";
-    geometry_msgs::TransformStamped transBaseLinkToMap = tfBuffer_.lookupTransform(source, destination, ros::Time(0));
+    try {
+        std::string source = "map",
+                    destination = "base_link";
+        geometry_msgs::TransformStamped transBaseLinkToMap = tfBuffer_.lookupTransform(source, destination, ros::Time(0));
 
-    robotHome_.header.frame_id = transBaseLinkToMap.header.frame_id;
-    robotHome_.pose.orientation = transBaseLinkToMap.transform.rotation;
-    robotHome_.pose.position.x = transBaseLinkToMap.transform.translation.x;
-    robotHome_.pose.position.y = transBaseLinkToMap.transform.translation.y;
-    robotHome_.pose.position.z = transBaseLinkToMap.transform.translation.z;
-    emit homeSet(true);
+        robotHome_.header.frame_id = transBaseLinkToMap.header.frame_id;
+        robotHome_.pose.orientation = transBaseLinkToMap.transform.rotation;
+        robotHome_.pose.position.x = transBaseLinkToMap.transform.translation.x;
+        robotHome_.pose.position.y = transBaseLinkToMap.transform.translation.y;
+        robotHome_.pose.position.z = transBaseLinkToMap.transform.translation.z;
+        emit homeSet(true);
+    } catch (...) {
+    }
 }
 
 void MapSubscriber::setHomeIfNone() {
