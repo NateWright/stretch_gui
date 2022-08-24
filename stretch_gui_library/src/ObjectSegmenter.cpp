@@ -2,27 +2,49 @@
 
 ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     clusterPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/cluster", 1000);
+    testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 1000);
     pointPub_ = nh_->advertise<geometry_msgs::PointStamped>("/stretch_pc/centerPoint", 1000);
 }
 
-void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputCloud, const point pointToFind) {
-    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
-    pcl::PointCloud<point>::Ptr background_filtered(new pcl::PointCloud<point>);
-    pcl::PointCloud<point>::Ptr table_filtered_cloud(new pcl::PointCloud<point>);
+void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputCloud, const Point pointToFind, const tf2_ros::Buffer* buffer) {
+    const std::string targetFrame = "base_link";
+    const std::string outputFrame = inputCloud->header.frame_id;
+    pcl::PointCloud<Point>::Ptr inputCloudTransformed(new pcl::PointCloud<Point>);
+    pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
+    pcl::PointCloud<Point>::Ptr background_filtered(new pcl::PointCloud<Point>);
+    pcl::PointCloud<Point>::Ptr table_filtered_cloud(new pcl::PointCloud<Point>);
+    pcl::PointCloud<Point>::Ptr cluster(new pcl::PointCloud<Point>);
     std::vector<pcl::PointIndices> clusters;
 
-    background_filtered = filterDistance(inputCloud, 0.0, 1.0);
+    pcl_ros::transformPointCloud(targetFrame, *inputCloud, *inputCloudTransformed, *buffer);
+
+    geometry_msgs::PointStamped point;
+    point.header.frame_id = outputFrame;
+    point.point = pclToGeo(pointToFind);
+
+    point = buffer->transform(point, targetFrame);
+
+    if (point.point.x * point.point.x + point.point.y * point.point.y > 1.00) {
+        throw(ObjectOutOfRange());
+    }
+
+    const Point pointTransformed = geoToPcl(point.point);
+
+    background_filtered = filterDistance(inputCloudTransformed, 0.0, 1.0);
     if (background_filtered->size() == 0) {
         throw("segmentAndFind: background filtered cloud is empty");
     }
+
+    testPub_.publish(background_filtered);
+
     table_filtered_cloud = filterTable(background_filtered);
     if (table_filtered_cloud->size() == 0) {
         throw("segmentAndFind: table filtered cloud is empty");
     }
 
-    pcl::search::Search<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::search::Search<Point>::Ptr tree(new pcl::search::KdTree<Point>);
 
-    pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
+    pcl::RegionGrowingRGB<Point> reg;
     reg.setInputCloud(table_filtered_cloud);
     reg.setSearchMethod(tree);
     reg.setDistanceThreshold(10);
@@ -32,26 +54,25 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     reg.extract(clusters);
 
     segmented_cloud = reg.getColoredCloud();
-    segmented_cloud->header = inputCloud->header;
 
     ROS_INFO_STREAM("Picking event occurred");
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster;
+    pcl::PointCloud<Point>::Ptr cloud_cluster;
 
     ROS_INFO_STREAM("Looking for cluster");
     bool done = false;
 
-    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    pcl::KdTreeFLANN<Point> kdtree;
     kdtree.setInputCloud(segmented_cloud);
     std::vector<int> pointIdxNKNSearch(1);
     std::vector<float> pointNKNSquaredDistance(1);
 
-    kdtree.nearestKSearch(pointToFind, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+    kdtree.nearestKSearch(pointTransformed, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
 
     int pos = pointIdxNKNSearch[0];
 
     for (pcl::PointIndices p : clusters) {
-        cloud_cluster.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        cloud_cluster.reset(new pcl::PointCloud<Point>);
         for (const auto& idx : p.indices) {
             cloud_cluster->push_back((*segmented_cloud)[idx]);
             if (idx == pos) {
@@ -82,36 +103,54 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<point>::Ptr& inputClo
     pStamped.point.x = x / count;
     pStamped.point.y = y / count;
     pStamped.point.z = z / count;
-    pStamped.header.frame_id = inputCloud->header.frame_id;
-    pointPub_.publish(pStamped);
+    pStamped.header.frame_id = targetFrame;
 
-    cloud_cluster->header.frame_id = inputCloud->header.frame_id;
-    clusterPub_.publish(cloud_cluster);
+    pointPub_.publish(buffer->transform(pStamped, outputFrame));
+
+    cloud_cluster->header.frame_id = targetFrame;
+    pcl_ros::transformPointCloud(outputFrame, *cloud_cluster, *cluster, *buffer);
+    clusterPub_.publish(cluster);
 }
 
-pcl::PointCloud<point>::Ptr filterDistance(const pcl::PointCloud<point>::Ptr inputCloud, double fromDistance, double toDistance) {
-    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+geometry_msgs::Point pclToGeo(const Point p) {
+    geometry_msgs::Point output;
+    output.x = p.x;
+    output.y = p.y;
+    output.z = p.z;
+    return output;
+}
+
+Point geoToPcl(const geometry_msgs::Point p) {
+    Point output;
+    output.x = p.x;
+    output.y = p.y;
+    output.z = p.z;
+    return output;
+}
+
+pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inputCloud, double fromDistance, double toDistance) {
+    pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
     pcl::IndicesPtr indices(new std::vector<int>);
-    pcl::PassThrough<pcl::PointXYZRGB> pass;
+    pcl::PassThrough<Point> pass;
     pass.setInputCloud(inputCloud);
-    pass.setFilterFieldName("z");
+    pass.setFilterFieldName("x");
     pass.setFilterLimits(fromDistance, toDistance);
     pass.filter(*indices);
 
-    pcl::ExtractIndices<point> extract;
+    pcl::ExtractIndices<Point> extract;
     extract.setInputCloud(inputCloud);
     extract.setIndices(indices);
     extract.filter(*segmented_cloud);
     return segmented_cloud;
 }
 
-pcl::PointCloud<point>::Ptr filterTable(const pcl::PointCloud<point>::Ptr inputCloud) {
-    pcl::PointCloud<point>::Ptr segmented_cloud(new pcl::PointCloud<point>);
+pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr inputCloud) {
+    pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
 
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     // Create the segmentation object
-    pcl::SACSegmentation<point> seg;
+    pcl::SACSegmentation<Point> seg;
     // Optional
     seg.setOptimizeCoefficients(true);
     // Mandatory
@@ -122,7 +161,7 @@ pcl::PointCloud<point>::Ptr filterTable(const pcl::PointCloud<point>::Ptr inputC
     seg.setInputCloud(inputCloud);
     seg.segment(*inliers, *coefficients);
 
-    pcl::ExtractIndices<point> extract;
+    pcl::ExtractIndices<Point> extract;
     extract.setInputCloud(inputCloud);
     extract.setIndices(inliers);
     extract.setNegative(true);

@@ -69,15 +69,12 @@ class MapSubscriber : public QThread {
     void posCallback(const nav_msgs::Odometry::ConstPtr& msg);
     void mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr);
    signals:
-    void validPoint();
-    void invalidPoint();
     void homeSet(bool);
     void robotPose(QPoint, double);
 
    public slots:
     void moveRobot(QPoint press, QPoint release, QSize screen);
     void moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose);
-    void checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input);
     void setHome();
     void setHomeIfNone();
     void navigateHome();

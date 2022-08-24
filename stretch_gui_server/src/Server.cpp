@@ -58,14 +58,12 @@ void Server::initConnections() {
     connect(cameraNode_, &RosCamera::clickFailure, this, &Server::uiErrorNanPointShow);    // Server to client
     connect(cameraNode_, &RosCamera::clickFailure, this, &Server::uiPointPleaseWaitHide);  // Server to client
 
-    connect(cameraNode_, &RosCamera::checkPointInRange, mapNode_, &MapSubscriber::checkPointInRange);  // Server only
-
     // True
-    connect(mapNode_, &MapSubscriber::validPoint, this, &Server::changeToConfirmObject);  // Both
-    connect(mapNode_, &MapSubscriber::validPoint, this, &Server::uiChangeToConfirmObject);
+    connect(cameraNode_, &RosCamera::clickSuccess, this, &Server::changeToConfirmObject);  // Both
+    connect(cameraNode_, &RosCamera::clickSuccess, this, &Server::uiChangeToConfirmObject);
     // False
-    connect(mapNode_, &MapSubscriber::invalidPoint, this, &Server::uiErrorOutOfRangeShow);  // Server to client
-    connect(mapNode_, &MapSubscriber::invalidPoint, this, &Server::uiPointPleaseWaitHide);  // Server to client
+    connect(cameraNode_, &RosCamera::invalidPoint, this, &Server::uiErrorOutOfRangeShow);  // Server to client
+    connect(cameraNode_, &RosCamera::invalidPoint, this, &Server::uiPointPleaseWaitHide);  // Server to client
 
     // Confirm Object Page
 

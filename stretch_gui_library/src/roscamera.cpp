@@ -9,11 +9,17 @@ RosCamera::RosCamera(ros::NodeHandlePtr nh) : nh_(nh) {
     pointPick_ = nh->advertise<geometry_msgs::PointStamped>("/clicked_point", 30);
     centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &RosCamera::centerPointCallback, this);
     cameraPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image", 30);
+
+    tfBuffer_ = new tf2_ros::Buffer();
+    tfListener_ = new tf2_ros::TransformListener(*tfBuffer_);
+
     moveToThread(this);
 }
 RosCamera::~RosCamera() {
     spinner_->stop();
     delete spinner_;
+    delete tfListener_;
+    delete tfBuffer_;
 }
 
 void RosCamera::run() {
@@ -97,7 +103,9 @@ void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
         point->point.z = p.z;
 
         try {
-            segmenter_->segmentAndFind(sceneClickCloud_, p);
+            segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_);
+        } catch (ObjectOutOfRange error) {
+            emit invalidPoint();
         } catch (...) {
             ROS_INFO_STREAM("Point cloud was empty after segmentation");
             emit clickFailure();

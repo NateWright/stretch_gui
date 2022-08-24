@@ -8,6 +8,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <tf2/utils.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <QColor>
 #include <QDebug>
@@ -47,6 +49,8 @@ class RosCamera : public QThread {
     ros::Publisher cameraPub_;
 
     ros::AsyncSpinner *spinner_;
+    tf2_ros::Buffer *tfBuffer_;
+    tf2_ros::TransformListener *tfListener_;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr sceneClickCloud_;
@@ -68,6 +72,8 @@ class RosCamera : public QThread {
     void clickSuccess();
     void clickFailure();
     void clickInitiated();
+    void validPoint();
+    void invalidPoint();
    public slots:
     void sceneClicked(QPoint press, QPoint release, QSize screen);
 };

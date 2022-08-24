@@ -1,4 +1,5 @@
 #include <pcl/common/distances.h>
+#include <pcl_ros/transforms.h>
 // #include <pcl/conversions.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/features/normal_3d.h>
@@ -21,6 +22,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
+#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -32,7 +34,7 @@
 
 using namespace std::chrono_literals;
 
-typedef pcl::PointXYZRGB point;
+typedef pcl::PointXYZRGB Point;
 
 class ObjectSegmenter {
    private:
@@ -42,13 +44,23 @@ class ObjectSegmenter {
     // Publishers and Subscribers
     ros::Publisher clusterPub_;
     ros::Publisher pointPub_;
+    ros::Publisher testPub_;
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
-    void segmentAndFind(const pcl::PointCloud<point>::Ptr&, const point);
+    void segmentAndFind(const pcl::PointCloud<Point>::Ptr&, const Point, const tf2_ros::Buffer* buffer);
 };
 
-pcl::PointCloud<point>::Ptr filterDistance(const pcl::PointCloud<point>::Ptr, double fromDistance, double toDistance);
-pcl::PointCloud<point>::Ptr filterTable(const pcl::PointCloud<point>::Ptr);
+geometry_msgs::Point pclToGeo(const Point);
+Point geoToPcl(const geometry_msgs::Point);
+pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr, double fromDistance, double toDistance);
+pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
 
 typedef std::shared_ptr<ObjectSegmenter> ObjectSegmenterPtr;
+
+class ObjectOutOfRange : public std::exception {
+   public:
+    char* what() {
+        return "Object is too far from robot";
+    }
+};

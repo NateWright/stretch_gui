@@ -119,24 +119,6 @@ void MapSubscriber::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
     movePub_.publish(pose);
 }
 
-void MapSubscriber::checkPointInRange(const geometry_msgs::PointStamped::ConstPtr& input) {
-    const double maxDistance = 1.00;
-    try {
-        geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "base_link");
-
-        const double xSquared = point.point.x * point.point.x,
-                     ySquared = point.point.y * point.point.y;
-
-        if (xSquared + ySquared < maxDistance * maxDistance) {
-            emit validPoint();
-            return;
-        }
-    } catch (...) {
-        qDebug() << "failed";
-    }
-    emit invalidPoint();
-}
-
 void MapSubscriber::setHome() {
     std::string source = "map",
                 destination = "base_link";
