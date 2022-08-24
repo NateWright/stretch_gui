@@ -2,7 +2,7 @@
 
 ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     clusterPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/cluster", 1000);
-    testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 1000);
+    // testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 1000);
     pointPub_ = nh_->advertise<geometry_msgs::PointStamped>("/stretch_pc/centerPoint", 1000);
 }
 
@@ -30,12 +30,12 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
 
     const Point pointTransformed = geoToPcl(point.point);
 
-    background_filtered = filterDistance(inputCloudTransformed, 0.0, 1.0);
+    background_filtered = filterDistance(inputCloudTransformed, 0.0, 1.0, "x");
     if (background_filtered->size() == 0) {
         throw("segmentAndFind: background filtered cloud is empty");
     }
 
-    testPub_.publish(background_filtered);
+    background_filtered = filterDistance(background_filtered, 0.19, 1.0, "z");
 
     table_filtered_cloud = filterTable(background_filtered);
     if (table_filtered_cloud->size() == 0) {
@@ -128,12 +128,12 @@ Point geoToPcl(const geometry_msgs::Point p) {
     return output;
 }
 
-pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inputCloud, double fromDistance, double toDistance) {
+pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inputCloud, double fromDistance, double toDistance, std::string direction) {
     pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
     pcl::IndicesPtr indices(new std::vector<int>);
     pcl::PassThrough<Point> pass;
     pass.setInputCloud(inputCloud);
-    pass.setFilterFieldName("x");
+    pass.setFilterFieldName(direction);
     pass.setFilterLimits(fromDistance, toDistance);
     pass.filter(*indices);
 

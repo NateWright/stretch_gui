@@ -44,7 +44,7 @@ class ObjectSegmenter {
     // Publishers and Subscribers
     ros::Publisher clusterPub_;
     ros::Publisher pointPub_;
-    ros::Publisher testPub_;
+    // ros::Publisher testPub_;
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
@@ -53,7 +53,7 @@ class ObjectSegmenter {
 
 geometry_msgs::Point pclToGeo(const Point);
 Point geoToPcl(const geometry_msgs::Point);
-pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr, double fromDistance, double toDistance);
+pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr, double fromDistance, double toDistance, std::string direction);
 pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
 
 typedef std::shared_ptr<ObjectSegmenter> ObjectSegmenterPtr;
