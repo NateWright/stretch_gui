@@ -5,6 +5,7 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     // testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 1000);
     pointPub_ = nh_->advertise<geometry_msgs::PointStamped>("/stretch_pc/centerPoint", 1000);
     visual_tools_.reset(new rviz_visual_tools::RvizVisualTools("base_link", "/rviz_visual_markers"));
+    tableCloud_.reset(new pcl::PointCloud<Point>);
 }
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputCloud, const Point pointToFind, const tf2_ros::Buffer* buffer) {
@@ -106,6 +107,12 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     pStamped.point.z = z / count;
     pStamped.header.frame_id = targetFrame;
 
+    Point p;
+    p.x = pStamped.point.x;
+    p.y = pStamped.point.y;
+    p.z = pStamped.point.z;
+    computePlane(p);
+
     visual_tools_->publishABCDPlane(planeA_, planeB_, planeC_, planeD_, rviz_visual_tools::RED);
     visual_tools_->trigger();
 
@@ -116,6 +123,41 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     cloud_cluster->header.frame_id = targetFrame;
     pcl_ros::transformPointCloud(outputFrame, *cloud_cluster, *cluster, *buffer);
     clusterPub_.publish(cluster);
+}
+
+void ObjectSegmenter::computePlane(Point p) {
+    pcl::NormalEstimation<Point, pcl::Normal> ne;
+    ne.setInputCloud(tableCloud_);
+    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
+    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
+    ne.setRadiusSearch(0.03);
+    ne.compute(*cloud_normals);
+
+    float x = 0, y = 0, z = 0, count = 0;
+
+    for (auto norm : *cloud_normals) {
+        x += norm.normal_x;
+        y += norm.normal_y;
+        z += norm.normal_z;
+        count++;
+    }
+
+    planeA_ = x / count;
+    planeB_ = y / count;
+    planeC_ = z / count;
+
+    pcl::KdTreeFLANN<Point> kdtree;
+    kdtree.setInputCloud(tableCloud_);
+    std::vector<int> pointIdxNKNSearch(1);
+    std::vector<float> pointNKNSquaredDistance(1);
+
+    kdtree.nearestKSearch(p, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+
+    int pos = pointIdxNKNSearch[0];
+
+    p = (*tableCloud_)[pos];
+
+    planeD_ = -planeA_ * p.x - planeB_ * p.y - planeC_ * p.z;
 }
 
 geometry_msgs::Point pclToGeo(const Point p) {
@@ -170,37 +212,9 @@ pcl::PointCloud<Point>::Ptr ObjectSegmenter::filterTable(const pcl::PointCloud<P
     pcl::ExtractIndices<Point> extract;
     extract.setInputCloud(inputCloud);
     extract.setIndices(inliers);
+    extract.filter(*tableCloud_);
     extract.setNegative(true);
     extract.filter(*segmented_cloud);
-
-    pcl::NormalEstimation<Point, pcl::Normal> ne;
-    ne.setInputCloud(inputCloud);
-    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
-    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
-    ne.setRadiusSearch(0.03);
-    ne.setIndices(inliers);
-    ne.compute(*cloud_normals);
-
-    float x = 0, y = 0, z = 0, count = 0;
-
-    for (auto norm : *cloud_normals) {
-        x += norm.normal_x;
-        y += norm.normal_y;
-        z += norm.normal_z;
-        count++;
-    }
-
-    planeA_ = x / count;
-    planeB_ = y / count;
-    planeC_ = z / count;
-
-    Point p = (*inputCloud)[inliers->indices.front()];
-
-    planeD_ = -planeA_ * p.x - planeB_ * p.y - planeC_ * p.z;
-    ROS_INFO_STREAM(planeA_);
-    ROS_INFO_STREAM(planeB_);
-    ROS_INFO_STREAM(planeC_);
-    ROS_INFO_STREAM(planeD_);
 
     return segmented_cloud;
 }

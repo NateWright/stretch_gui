@@ -48,10 +48,12 @@ class ObjectSegmenter {
     // ros::Publisher testPub_;
 
     float planeA_, planeB_, planeC_, planeD_;
+    pcl::PointCloud<Point>::Ptr tableCloud_;
     // For visualizing things in rviz
     rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
 
     pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
+    void computePlane(Point p);
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
