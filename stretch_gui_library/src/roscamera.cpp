@@ -105,8 +105,11 @@ void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
         try {
             segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_);
         } catch (ObjectOutOfRange error) {
+            ROS_INFO_STREAM("object out of range");
             emit invalidPoint();
+            return;
         } catch (...) {
+            ROS_INFO_STREAM("catch all");
             ROS_INFO_STREAM("Point cloud was empty after segmentation");
             emit clickFailure();
             return;
