@@ -38,7 +38,6 @@ class GraspNode : public QThread {
     tf2_ros::Buffer tfBuffer_;
     tf2_ros::TransformListener *tfListener_;
 
-    geometry_msgs::PointStamped::Ptr point_;
     geometry_msgs::PointStamped::Ptr pointBaseLink_;
 
     geometry_msgs::PoseStamped::Ptr homePose_;
