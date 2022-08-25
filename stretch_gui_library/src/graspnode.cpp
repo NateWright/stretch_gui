@@ -7,6 +7,8 @@ GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stop
     nh_->getParam("/stretch_gui/verticalOffset", verticalOffset_);
     nh_->getParam("/stretch_gui/horizontalOffset", horizontalOffset_);
 
+    pointBaseLink_.reset(new geometry_msgs::PointStamped());
+
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
     moveToThread(this);
 }
@@ -25,7 +27,6 @@ void GraspNode::run() {
 
 void GraspNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& input) {
     geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "base_link");
-    pointBaseLink_.reset(new geometry_msgs::PointStamped());
     *pointBaseLink_ = point;
 }
 
