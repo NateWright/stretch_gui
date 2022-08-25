@@ -105,6 +105,8 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     pStamped.point.z = z / count;
     pStamped.header.frame_id = targetFrame;
 
+    ROS_INFO_STREAM(distPlaneToPoint(planeA_, planeB_, planeC_, planeD_, pStamped.point.x, pStamped.point.y, pStamped.point.z));
+
     pointPub_.publish(buffer->transform(pStamped, outputFrame));
 
     cloud_cluster->header.frame_id = targetFrame;
@@ -144,7 +146,7 @@ pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inp
     return segmented_cloud;
 }
 
-pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr inputCloud) {
+pcl::PointCloud<Point>::Ptr ObjectSegmenter::filterTable(const pcl::PointCloud<Point>::Ptr inputCloud) {
     pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
 
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -167,5 +169,38 @@ pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr inputC
     extract.setNegative(true);
     extract.filter(*segmented_cloud);
 
+    pcl::NormalEstimation<Point, pcl::Normal> ne;
+    ne.setInputCloud(inputCloud);
+    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
+    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
+    ne.setRadiusSearch(0.03);
+    ne.setIndices(inliers);
+    ne.compute(*cloud_normals);
+
+    float x = 0, y = 0, z = 0, count = 0;
+
+    for (auto norm : *cloud_normals) {
+        x += norm.normal_x;
+        y += norm.normal_y;
+        z += norm.normal_z;
+        count++;
+    }
+
+    planeA_ = x / count;
+    planeB_ = y / count;
+    planeC_ = z / count;
+
+    Point p = (*inputCloud)[inliers->indices.front()];
+
+    planeD_ = -planeA_ * p.x - planeB_ * p.y - planeC_ * p.z;
+    ROS_INFO_STREAM(planeA_);
+    ROS_INFO_STREAM(planeB_);
+    ROS_INFO_STREAM(planeC_);
+    ROS_INFO_STREAM(planeD_);
+
     return segmented_cloud;
+}
+
+float distPlaneToPoint(float planeA, float planeB, float planeC, float planeD, float x, float y, float z) {
+    return abs(planeA * x + planeB * y + planeC * z + planeD) / sqrt(planeA * planeA + planeB * planeB + planeC * planeC);
 }

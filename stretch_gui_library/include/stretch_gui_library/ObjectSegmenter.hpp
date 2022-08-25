@@ -46,6 +46,10 @@ class ObjectSegmenter {
     ros::Publisher pointPub_;
     // ros::Publisher testPub_;
 
+    float planeA_, planeB_, planeC_, planeD_;
+
+    pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
+
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
     void segmentAndFind(const pcl::PointCloud<Point>::Ptr&, const Point, const tf2_ros::Buffer* buffer);
@@ -54,13 +58,14 @@ class ObjectSegmenter {
 geometry_msgs::Point pclToGeo(const Point);
 Point geoToPcl(const geometry_msgs::Point);
 pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr, double fromDistance, double toDistance, std::string direction);
-pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
+
+float distPlaneToPoint(float planeA, float planeB, float planeC, float planeD, float x, float y, float z);
 
 typedef std::shared_ptr<ObjectSegmenter> ObjectSegmenterPtr;
 
 class ObjectOutOfRange : public std::exception {
    public:
     char* what() {
-        return "Object is too far from robot";
+        return (char*)"Object is too far from robot";
     }
 };
