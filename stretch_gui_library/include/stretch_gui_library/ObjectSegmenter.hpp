@@ -20,6 +20,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
+#include <rviz_visual_tools/rviz_visual_tools.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
 #include <tf2/utils.h>
@@ -47,6 +48,8 @@ class ObjectSegmenter {
     // ros::Publisher testPub_;
 
     float planeA_, planeB_, planeC_, planeD_;
+    // For visualizing things in rviz
+    rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
 
     pcl::PointCloud<Point>::Ptr filterTable(const pcl::PointCloud<Point>::Ptr);
 

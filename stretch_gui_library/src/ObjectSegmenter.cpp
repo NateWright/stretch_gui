@@ -4,6 +4,7 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     clusterPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/cluster", 1000);
     // testPub_ = nh_->advertise<sensor_msgs::PointCloud2>("/stretch_pc/test", 1000);
     pointPub_ = nh_->advertise<geometry_msgs::PointStamped>("/stretch_pc/centerPoint", 1000);
+    visual_tools_.reset(new rviz_visual_tools::RvizVisualTools("base_link", "/rviz_visual_markers"));
 }
 
 void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputCloud, const Point pointToFind, const tf2_ros::Buffer* buffer) {
@@ -104,6 +105,9 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     pStamped.point.y = y / count;
     pStamped.point.z = z / count;
     pStamped.header.frame_id = targetFrame;
+
+    visual_tools_->publishABCDPlane(planeA_, planeB_, planeC_, planeD_, rviz_visual_tools::RED);
+    visual_tools_->trigger();
 
     ROS_INFO_STREAM(distPlaneToPoint(planeA_, planeB_, planeC_, planeD_, pStamped.point.x, pStamped.point.y, pStamped.point.z));
 
