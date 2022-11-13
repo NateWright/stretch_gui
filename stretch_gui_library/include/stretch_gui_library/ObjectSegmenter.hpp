@@ -40,13 +40,17 @@ typedef pcl::PointXYZRGB Point;
 class ObjectSegmenter {
    private:
     // Setup
+    // Node Handle
     ros::NodeHandlePtr nh_;
 
     // Publishers and Subscribers
+    // Publishes object cluster;
     ros::Publisher clusterPub_;
+    // Publishes center point of object
     ros::Publisher pointPub_;
     // ros::Publisher testPub_;
 
+    // Defines table plane
     float planeA_, planeB_, planeC_, planeD_;
     pcl::PointCloud<Point>::Ptr tableCloud_;
     // For visualizing things in rviz

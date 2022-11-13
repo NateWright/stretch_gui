@@ -159,6 +159,7 @@ void ObjectSegmenter::computePlane(Point p) {
     planeD_ = -planeA_ * p.x - planeB_ * p.y - planeC_ * p.z;
 }
 
+// Converts pcl::PointXYZRGB to geometry_msgs::Point
 geometry_msgs::Point pclToGeo(const Point p) {
     geometry_msgs::Point output;
     output.x = p.x;
@@ -167,6 +168,7 @@ geometry_msgs::Point pclToGeo(const Point p) {
     return output;
 }
 
+// Converts geometry_msgs::Point to pcl::PointXYZRGB
 Point geoToPcl(const geometry_msgs::Point p) {
     Point output;
     output.x = p.x;
@@ -175,6 +177,7 @@ Point geoToPcl(const geometry_msgs::Point p) {
     return output;
 }
 
+// Removes points in cloud fromDistance toDistance
 pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inputCloud, double fromDistance, double toDistance, std::string direction) {
     pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
     pcl::IndicesPtr indices(new std::vector<int>);
@@ -191,6 +194,7 @@ pcl::PointCloud<Point>::Ptr filterDistance(const pcl::PointCloud<Point>::Ptr inp
     return segmented_cloud;
 }
 
+// Removes largest plane in scene
 pcl::PointCloud<Point>::Ptr ObjectSegmenter::filterTable(const pcl::PointCloud<Point>::Ptr inputCloud) {
     pcl::PointCloud<Point>::Ptr segmented_cloud(new pcl::PointCloud<Point>);
 
@@ -218,6 +222,7 @@ pcl::PointCloud<Point>::Ptr ObjectSegmenter::filterTable(const pcl::PointCloud<P
     return segmented_cloud;
 }
 
+// Finds distance from plane to point
 float distPlaneToPoint(float planeA, float planeB, float planeC, float planeD, float x, float y, float z) {
     return abs(planeA * x + planeB * y + planeC * z + planeD) / sqrt(planeA * planeA + planeB * planeB + planeC * planeC);
 }
