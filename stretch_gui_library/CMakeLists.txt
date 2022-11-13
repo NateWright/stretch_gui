@@ -10,7 +10,6 @@ add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning
   moveit_ros_planning_interface
-  rviz_visual_tools
   pcl_ros
   roscpp
   rospy
@@ -115,7 +114,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS moveit_ros_planning rviz_visual_tools moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge
+ CATKIN_DEPENDS moveit_ros_planning moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge
  DEPENDS Qt6Core Qt6PrintSupport Qt6Widgets
 )
 
