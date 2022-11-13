@@ -1,5 +1,4 @@
-#ifndef StretchInterfaceGazebo_HPP
-#define StretchInterfaceGazebo_HPP
+#pragma once
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <ros/callback_queue.h>
@@ -60,5 +59,3 @@ class StretchInterfaceGazebo {
     bool gripperApertureCallback(stretch_gui_library::DoubleBool::Request &req,
                                  stretch_gui_library::DoubleBool::Response &res);
 };
-
-#endif  // StretchInterfaceGazebo_HPP

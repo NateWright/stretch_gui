@@ -1,5 +1,4 @@
-#ifndef MOVEBASESTATUS_HPP
-#define MOVEBASESTATUS_HPP
+#pragma once
 
 #include <actionlib_msgs/GoalID.h>
 #include <actionlib_msgs/GoalStatusArray.h>
@@ -36,5 +35,3 @@ class MoveBaseStatus : public QThread {
 
     void moveBaseStatusCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &msg);
 };
-
-#endif  // MOVEBASESTATUS_HPP

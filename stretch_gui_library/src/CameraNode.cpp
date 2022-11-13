@@ -1,13 +1,13 @@
-#include "roscamera.hpp"
+#include "CameraNode.hpp"
 
-RosCamera::RosCamera(ros::NodeHandlePtr nh) : nh_(nh) {
+CameraNode::CameraNode(ros::NodeHandlePtr nh) : nh_(nh) {
     segmenter_.reset(new ObjectSegmenter(nh_));
     std::string pointCloudTopic;
     nh->getParam("/stretch_gui/pointCloudTopic", pointCloudTopic);
-    colorCameraSub_ = nh_->subscribe(pointCloudTopic, 30, &RosCamera::cameraCallback, this);
-    segmentedCameraSub_ = nh_->subscribe("/stretch_pc/cluster", 30, &RosCamera::segmentedCameraCallback, this);
+    colorCameraSub_ = nh_->subscribe(pointCloudTopic, 30, &CameraNode::cameraCallback, this);
+    segmentedCameraSub_ = nh_->subscribe("/stretch_pc/cluster", 30, &CameraNode::segmentedCameraCallback, this);
     pointPick_ = nh->advertise<geometry_msgs::PointStamped>("/clicked_point", 30);
-    centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &RosCamera::centerPointCallback, this);
+    centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &CameraNode::centerPointCallback, this);
     cameraPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image", 30);
 
     tfBuffer_ = new tf2_ros::Buffer();
@@ -15,24 +15,24 @@ RosCamera::RosCamera(ros::NodeHandlePtr nh) : nh_(nh) {
 
     moveToThread(this);
 }
-RosCamera::~RosCamera() {
+CameraNode::~CameraNode() {
     spinner_->stop();
     delete spinner_;
     delete tfListener_;
     delete tfBuffer_;
 }
 
-void RosCamera::run() {
+void CameraNode::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
     exec();
 }
 
-void RosCamera::cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pc) {
+void CameraNode::cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pc) {
     cloud_ = pc;
 
     const int width = pc->width, height = pc->height;
-    camera_.reset(new QImage(height, width, ROSCAMERA::FORMAT));
+    camera_.reset(new QImage(height, width, Camera::FORMAT));
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rotatedCloud(new pcl::PointCloud<pcl::PointXYZRGB>(height, width, pcl::PointXYZRGB(0, 0, 0)));
 
     pcl::PointXYZRGB point;
@@ -48,7 +48,7 @@ void RosCamera::cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pc)
     cameraPub_.publish(img);
 }
 
-void RosCamera::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pc) {
+void CameraNode::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pc) {
     const int width = sceneClickCloud_->width, height = sceneClickCloud_->height;
     QSharedPointer<QImage> img = camera_;
 
@@ -69,12 +69,12 @@ void RosCamera::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>:
     emit imgUpdateWithPointQImage(*img.data());
 }
 
-void RosCamera::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& point) {
+void CameraNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& point) {
     emit checkPointInRange(point);
     return;
 }
 
-void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
+void CameraNode::sceneClicked(QPoint press, QPoint release, QSize screen) {
     sceneClickCloud_ = cloud_;
     if (!sceneClickCloud_ || sceneClickCloud_->size() == 0) {
         emit clickFailure();
@@ -103,7 +103,7 @@ void RosCamera::sceneClicked(QPoint press, QPoint release, QSize screen) {
         point->point.z = p.z;
 
         try {
-            segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_);
+            distToTable_ = segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_);
         } catch (ObjectOutOfRange error) {
             ROS_INFO_STREAM("object out of range");
             emit invalidPoint();

@@ -114,7 +114,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS moveit_ros_planning moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge
+ CATKIN_DEPENDS moveit_ros_planning rviz_visual_tools moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge
  DEPENDS Qt6Core Qt6PrintSupport Qt6Widgets
 )
 
@@ -138,19 +138,19 @@ qt_wrap_cpp("include/${PROJECT_NAME}/*.hpp")
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME} STATIC
-  include/${PROJECT_NAME}/graspnode.hpp
-  include/${PROJECT_NAME}/mapsubscriber.hpp
-  include/${PROJECT_NAME}/movebasestatus.hpp
-  include/${PROJECT_NAME}/roscamera.hpp
-  include/${PROJECT_NAME}/sceneviewer.hpp
-  include/${PROJECT_NAME}/StretchMoveItInterface.hpp
+  include/${PROJECT_NAME}/GraspNode.hpp
+  include/${PROJECT_NAME}/MapNode.hpp
+  include/${PROJECT_NAME}/MoveBaseStatusNode.hpp
+  include/${PROJECT_NAME}/CameraNode.hpp
+  # include/${PROJECT_NAME}/sceneviewer.hpp
+  include/${PROJECT_NAME}/StretchInterface.hpp
   include/${PROJECT_NAME}/ObjectSegmenter.hpp
   include/${PROJECT_NAME}/StretchInterfaceGazebo.hpp
-  src/graspnode.cpp
-  src/mapsubscriber.cpp
-  src/movebasestatus.cpp
-  src/roscamera.cpp
-  src/StretchMoveItInterface.cpp
+  src/GraspNode.cpp
+  src/MapNode.cpp
+  src/MoveBaseStatusNode.cpp
+  src/CameraNode.cpp
+  src/StretchInterface.cpp
   src/ObjectSegmenter.cpp
   src/StretchInterfaceGazebo.cpp
 )
@@ -203,9 +203,6 @@ target_link_libraries(stretch_gazebo ${PROJECT_NAME})
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS stretch_gazebo
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html

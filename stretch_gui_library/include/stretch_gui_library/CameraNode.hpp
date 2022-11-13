@@ -1,5 +1,4 @@
-#ifndef ROSCAMERA_HPP
-#define ROSCAMERA_HPP
+#pragma once
 
 #include <geometry_msgs/PointStamped.h>
 #include <pcl/common/distances.h>
@@ -27,15 +26,15 @@
 
 #include "ObjectSegmenter.hpp"
 
-namespace ROSCAMERA {
+namespace Camera {
 const QImage::Format FORMAT = QImage::Format_RGB16;
 }
 
-class RosCamera : public QThread {
+class CameraNode : public QThread {
     Q_OBJECT
    public:
-    explicit RosCamera(ros::NodeHandlePtr nh);
-    ~RosCamera();
+    explicit CameraNode(ros::NodeHandlePtr nh);
+    ~CameraNode();
     void run() override;
 
    private:
@@ -59,6 +58,8 @@ class RosCamera : public QThread {
 
     ObjectSegmenterPtr segmenter_;
 
+    float distToTable_;
+
     void cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &);
     void segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &);
     void centerPointCallback(const geometry_msgs::PointStamped::ConstPtr &);
@@ -77,5 +78,3 @@ class RosCamera : public QThread {
    public slots:
     void sceneClicked(QPoint press, QPoint release, QSize screen);
 };
-
-#endif  // ROSCAMERA_HPP

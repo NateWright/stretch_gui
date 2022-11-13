@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 
-#include "StretchInterfaceGazebo.hpp"
+#include <stretch_gui_library/StretchInterfaceGazebo.hpp>
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "stretch_move_group_interface");

@@ -1,4 +1,4 @@
-#include "movebasestatus.hpp"
+#include "MoveBaseStatusNode.hpp"
 
 MoveBaseStatus::MoveBaseStatus(ros::NodeHandlePtr nodeHandle) : nh_(nodeHandle), moving_(false) {
     moveBaseStatusSub_ = nh_->subscribe("/move_base/status", 1000, &MoveBaseStatus::moveBaseStatusCallback, this);

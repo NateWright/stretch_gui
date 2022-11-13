@@ -1,37 +1,37 @@
-#include "mapsubscriber.hpp"
+#include "MapNode.hpp"
 
-MapSubscriber::MapSubscriber(ros::NodeHandlePtr nodeHandle)
+MapNode::MapNode(ros::NodeHandlePtr nodeHandle)
     : nh_(nodeHandle), robotPos_(QPoint(0, 0)) {
-    mapSub_ = nh_->subscribe("/map", 30, &MapSubscriber::mapCallback, this);
-    mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapSubscriber::mapPointCloudCallback, this);
+    mapSub_ = nh_->subscribe("/map", 30, &MapNode::mapCallback, this);
+    mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapNode::mapPointCloudCallback, this);
     std::string odomTopic;
     nh_->getParam("/stretch_gui/odom", odomTopic);
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
     mapPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map", 30, true);
-    posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapSubscriber::posCallback, this);
+    posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapNode::posCallback, this);
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
     moveToThread(this);
 }
 
-MapSubscriber::~MapSubscriber() {
+MapNode::~MapNode() {
     posTimer_.stop();
     spinner_->stop();
     delete spinner_;
     delete tfListener_;
 }
 
-void MapSubscriber::run() {
+void MapNode::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
     posTimer_.start();
     exec();
 }
 
-void MapSubscriber::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
+void MapNode::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
     mapMsg_ = msg;
 }
 
-void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+void MapNode::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
     ros::Duration d(1);
     nav_msgs::OccupancyGrid::ConstPtr msg = mapMsg_;
     while (!msg) {
@@ -60,7 +60,7 @@ void MapSubscriber::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB
     mapPub_.publish(map->toImageMsg());
 }
 
-void MapSubscriber::posCallback(const ros::TimerEvent&) {
+void MapNode::posCallback(const ros::TimerEvent&) {
     std::string source = "map";
     std::string destination = "base_link";
 
@@ -76,7 +76,7 @@ void MapSubscriber::posCallback(const ros::TimerEvent&) {
     }
 }
 
-void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
+void MapNode::moveRobot(QPoint press, QPoint release, QSize screen) {
     if (press == release) {
         return;
     }
@@ -117,11 +117,11 @@ void MapSubscriber::moveRobot(QPoint press, QPoint release, QSize screen) {
     movePub_.publish(pose);
 }
 
-void MapSubscriber::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
+void MapNode::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
     movePub_.publish(pose);
 }
 
-void MapSubscriber::setHome() {
+void MapNode::setHome() {
     try {
         std::string source = "map",
                     destination = "base_link";
@@ -137,26 +137,26 @@ void MapSubscriber::setHome() {
     }
 }
 
-void MapSubscriber::setHomeIfNone() {
+void MapNode::setHomeIfNone() {
     std::string s = robotHome_.header.frame_id;
     if (s.length() == 0) {
         setHome();
     }
 }
 
-void MapSubscriber::navigateHome() {
+void MapNode::navigateHome() {
     movePub_.publish(robotHome_);
 }
-void MapSubscriber::disableMapping() {
+void MapNode::disableMapping() {
     std_srvs::Empty msg;
     ros::service::call("/rtabmap/pause", msg);
 }
-void MapSubscriber::enableMapping() {
+void MapNode::enableMapping() {
     std_srvs::Empty msg;
     ros::service::call("/rtabmap/resume", msg);
 }
 
-void MapSubscriber::rotate(int degrees) {
+void MapNode::rotate(int degrees) {
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id = "base_link";
     tf2::Quaternion q;
@@ -165,14 +165,14 @@ void MapSubscriber::rotate(int degrees) {
     movePub_.publish(pose);
 }
 
-void MapSubscriber::rotateLeft(int degrees) {
+void MapNode::rotateLeft(int degrees) {
     rotate(degrees);
 }
-void MapSubscriber::rotateRight(int degrees) {
+void MapNode::rotateRight(int degrees) {
     rotate(-degrees);
 }
 
-void MapSubscriber::drive(double meters) {
+void MapNode::drive(double meters) {
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id = "base_link";
     pose.pose.position.x = meters;

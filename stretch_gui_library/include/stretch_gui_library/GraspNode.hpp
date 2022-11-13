@@ -1,5 +1,4 @@
-#ifndef GRASPNODE_HPP
-#define GRASPNODE_HPP
+#pragma once
 
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -85,5 +84,3 @@ class GraspNode : public QThread {
     void home();
     void releaseObject();
 };
-
-#endif  // GRASPNODE_HPP

@@ -1,6 +1,6 @@
-#include "StretchMoveItInterface.hpp"
+#include "StretchInterface.hpp"
 
-StretchMoveItInterface::StretchMoveItInterface(ros::NodeHandlePtr nh) : nh_(nh), panAngle_(0), tiltAngle_(0) {
+StretchInterface::StretchInterface(ros::NodeHandlePtr nh) : nh_(nh), panAngle_(0), tiltAngle_(0) {
     headTilt_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/head_tilt");
     headPan_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/head_pan");
     armLift_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/lift");
@@ -10,59 +10,59 @@ StretchMoveItInterface::StretchMoveItInterface(ros::NodeHandlePtr nh) : nh_(nh),
     moveToThread(this);
 }
 
-StretchMoveItInterface::~StretchMoveItInterface() {
+StretchInterface::~StretchInterface() {
     spinner_->stop();
     delete spinner_;
 }
 
-void StretchMoveItInterface::run() {
+void StretchInterface::run() {
     spinner_ = new ros::AsyncSpinner(0);
     spinner_->start();
     exec();
 }
 
-std::pair<int, int> StretchMoveItInterface::getHeadPanTilt() {
+std::pair<int, int> StretchInterface::getHeadPanTilt() {
     return {panAngle_, tiltAngle_};
 }
 
-void StretchMoveItInterface::headSetRotation(const double degPan, const double degTilt) {
+void StretchInterface::headSetRotation(const double degPan, const double degTilt) {
     headSetPan(degPan);
     headSetTilt(degTilt);
 }
 
-void StretchMoveItInterface::headSetPan(const double degPan) {
+void StretchInterface::headSetPan(const double degPan) {
     panAngle_ = degPan;
     stretch_gui_library::DoubleBool srv;
     srv.request.data = degPan * toRadians;
     headPan_.call(srv);
 }
-void StretchMoveItInterface::headSetTilt(const double degTilt) {
+void StretchInterface::headSetTilt(const double degTilt) {
     tiltAngle_ = degTilt;
     stretch_gui_library::DoubleBool srv;
     srv.request.data = degTilt * toRadians;
     headTilt_.call(srv);
 }
-void StretchMoveItInterface::armSetHeight(const double metersHeight) {
+void StretchInterface::armSetHeight(const double metersHeight) {
     stretch_gui_library::DoubleBool srv;
     srv.request.data = metersHeight;
     armLift_.call(srv);
 }
-void StretchMoveItInterface::armSetReach(const double metersReach) {
+void StretchInterface::armSetReach(const double metersReach) {
     stretch_gui_library::DoubleBool srv;
     srv.request.data = metersReach;
     armExtension_.call(srv);
 }
-void StretchMoveItInterface::gripperSetRotate(const double deg) {
+void StretchInterface::gripperSetRotate(const double deg) {
     stretch_gui_library::DoubleBool srv;
     srv.request.data = deg * toRadians;
     gipperYaw_.call(srv);
 }
-void StretchMoveItInterface::gripperSetGrip(const double deg) {
+void StretchInterface::gripperSetGrip(const double deg) {
     stretch_gui_library::DoubleBool srv;
     srv.request.data = deg * toRadians;
     gripperAperture_.call(srv);
 }
-void StretchMoveItInterface::homeRobot() {
+void StretchInterface::homeRobot() {
     headSetTilt();
     headSetPan();
     gripperSetGrip();
@@ -71,23 +71,23 @@ void StretchMoveItInterface::homeRobot() {
     armSetReach();
 }
 
-void StretchMoveItInterface::headUp() {
+void StretchInterface::headUp() {
     tiltAngle_ += 5;
     headSetTilt(tiltAngle_);
 }
-void StretchMoveItInterface::headDown() {
+void StretchInterface::headDown() {
     tiltAngle_ -= 5;
     headSetTilt(tiltAngle_);
 }
-void StretchMoveItInterface::headLeft() {
+void StretchInterface::headLeft() {
     panAngle_ += 5;
     headSetPan(panAngle_);
 }
-void StretchMoveItInterface::headRight() {
+void StretchInterface::headRight() {
     panAngle_ -= 5;
     headSetPan(panAngle_);
 }
 
-void StretchMoveItInterface::headHome() {
+void StretchInterface::headHome() {
     headSetRotation();
 }

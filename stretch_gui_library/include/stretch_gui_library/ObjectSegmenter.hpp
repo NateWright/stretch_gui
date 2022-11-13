@@ -1,3 +1,5 @@
+#pragma once
+
 #include <pcl/common/distances.h>
 #include <pcl_ros/transforms.h>
 // #include <pcl/conversions.h>
@@ -58,7 +60,7 @@ class ObjectSegmenter {
 
    public:
     explicit ObjectSegmenter(ros::NodeHandlePtr nh);
-    void segmentAndFind(const pcl::PointCloud<Point>::Ptr&, const Point, const tf2_ros::Buffer* buffer);
+    float segmentAndFind(const pcl::PointCloud<Point>::Ptr&, const Point, const tf2_ros::Buffer* buffer);
 };
 
 geometry_msgs::Point pclToGeo(const Point);

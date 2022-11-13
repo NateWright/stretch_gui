@@ -2,11 +2,11 @@
 
 Server::Server(QObject* parent) : ServerSimpleSource(parent), headPanTilt_({0, -30}) {
     nh_.reset(new ros::NodeHandle("stretch_gui_server"));
-    mapNode_ = new MapSubscriber(nh_);
+    mapNode_ = new MapNode(nh_);
     moveBaseStatusNode_ = new MoveBaseStatus(nh_);
-    cameraNode_ = new RosCamera(nh_);
+    cameraNode_ = new CameraNode(nh_);
     graspNode_ = new GraspNode(nh_);
-    moveItNode_ = new StretchMoveItInterface(nh_);
+    moveItNode_ = new StretchInterface(nh_);
 
     setPageNumber_(0);
     setHasObject_(false);
@@ -23,47 +23,47 @@ Server::Server(QObject* parent) : ServerSimpleSource(parent), headPanTilt_({0, -
 
 void Server::initConnections() {
     // Navigation Page
-    connect(this, &Server::enableMapping, mapNode_, &MapSubscriber::enableMapping);
-    connect(this, &Server::disableMapping, mapNode_, &MapSubscriber::disableMapping);
+    connect(this, &Server::enableMapping, mapNode_, &MapNode::enableMapping);
+    connect(this, &Server::disableMapping, mapNode_, &MapNode::disableMapping);
 
     connect(this, &Server::ButtonStopClicked, moveBaseStatusNode_, &MoveBaseStatus::stopRobot);
-    connect(this, &Server::ButtonSetHomeClicked, mapNode_, &MapSubscriber::setHome);
-    connect(this, &Server::ButtonNavigateHomeClicked, mapNode_, &MapSubscriber::navigateHome);
+    connect(this, &Server::ButtonSetHomeClicked, mapNode_, &MapNode::setHome);
+    connect(this, &Server::ButtonNavigateHomeClicked, mapNode_, &MapNode::navigateHome);
 
-    connect(this, &Server::DisplayMapMouseClick, mapNode_, &MapSubscriber::moveRobot);
+    connect(this, &Server::DisplayMapMouseClick, mapNode_, &MapNode::moveRobot);
 
-    connect(mapNode_, &MapSubscriber::robotPose, this, &Server::robotPose);
-    connect(mapNode_, &MapSubscriber::homeSet, this, [this](bool b) { emit uiButtonNavigateHomeSetEnabled(b); });
+    connect(mapNode_, &MapNode::robotPose, this, &Server::robotPose);
+    connect(mapNode_, &MapNode::homeSet, this, [this](bool b) { emit uiButtonNavigateHomeSetEnabled(b); });
 
     connect(moveBaseStatusNode_, &MoveBaseStatus::robotMoving, this, [this](bool b) { emit uiPleaseWaitSetVisible(b); });
 
     // Select Object Page
-    connect(this, &Server::homeRobot, moveItNode_, &StretchMoveItInterface::homeRobot);
-    connect(this, &Server::cameraSetRotation, moveItNode_, &StretchMoveItInterface::headSetRotation);
+    connect(this, &Server::homeRobot, moveItNode_, &StretchInterface::homeRobot);
+    connect(this, &Server::cameraSetRotation, moveItNode_, &StretchInterface::headSetRotation);
 
-    connect(this, &Server::CameraMoveButtonUpClicked, moveItNode_, &StretchMoveItInterface::headUp);        // Client to server
-    connect(this, &Server::CameraMoveButtonDownClicked, moveItNode_, &StretchMoveItInterface::headDown);    // Client to server
-    connect(this, &Server::CameraMoveButtonLeftClicked, moveItNode_, &StretchMoveItInterface::headLeft);    // Client to server
-    connect(this, &Server::CameraMoveButtonRightClicked, moveItNode_, &StretchMoveItInterface::headRight);  // Client to server
-    connect(this, &Server::CameraMoveButtonHomeClicked, moveItNode_, &StretchMoveItInterface::headHome);    // Client to server
+    connect(this, &Server::CameraMoveButtonUpClicked, moveItNode_, &StretchInterface::headUp);        // Client to server
+    connect(this, &Server::CameraMoveButtonDownClicked, moveItNode_, &StretchInterface::headDown);    // Client to server
+    connect(this, &Server::CameraMoveButtonLeftClicked, moveItNode_, &StretchInterface::headLeft);    // Client to server
+    connect(this, &Server::CameraMoveButtonRightClicked, moveItNode_, &StretchInterface::headRight);  // Client to server
+    connect(this, &Server::CameraMoveButtonHomeClicked, moveItNode_, &StretchInterface::headHome);    // Client to server
 
-    // Find point in Camera
-    connect(this, &Server::DisplayCameraMouseClicked, cameraNode_, &RosCamera::sceneClicked);
+    // Find point in CameraNode
+    connect(this, &Server::DisplayCameraMouseClicked, cameraNode_, &CameraNode::sceneClicked);
 
-    connect(cameraNode_, &RosCamera::clickInitiated, this, &Server::uiPointPleaseWaitShow);  // Sever to client
+    connect(cameraNode_, &CameraNode::clickInitiated, this, &Server::uiPointPleaseWaitShow);  // Sever to client
 
-    // Camera feed
+    // CameraNode feed
     // Server to client
     // Error: Displays if NaN point was selected
-    connect(cameraNode_, &RosCamera::clickFailure, this, &Server::uiErrorNanPointShow);    // Server to client
-    connect(cameraNode_, &RosCamera::clickFailure, this, &Server::uiPointPleaseWaitHide);  // Server to client
+    connect(cameraNode_, &CameraNode::clickFailure, this, &Server::uiErrorNanPointShow);    // Server to client
+    connect(cameraNode_, &CameraNode::clickFailure, this, &Server::uiPointPleaseWaitHide);  // Server to client
 
     // True
-    connect(cameraNode_, &RosCamera::clickSuccess, this, &Server::changeToConfirmObject);  // Both
-    connect(cameraNode_, &RosCamera::clickSuccess, this, &Server::uiChangeToConfirmObject);
+    connect(cameraNode_, &CameraNode::clickSuccess, this, &Server::changeToConfirmObject);  // Both
+    connect(cameraNode_, &CameraNode::clickSuccess, this, &Server::uiChangeToConfirmObject);
     // False
-    connect(cameraNode_, &RosCamera::invalidPoint, this, &Server::uiErrorOutOfRangeShow);  // Server to client
-    connect(cameraNode_, &RosCamera::invalidPoint, this, &Server::uiPointPleaseWaitHide);  // Server to client
+    connect(cameraNode_, &CameraNode::invalidPoint, this, &Server::uiErrorOutOfRangeShow);  // Server to client
+    connect(cameraNode_, &CameraNode::invalidPoint, this, &Server::uiPointPleaseWaitHide);  // Server to client
 
     // Confirm Object Page
 
@@ -74,7 +74,7 @@ void Server::initConnections() {
     connect(this, &Server::ConfirmButtonYesClicked, this, &Server::changeToGrasping);     // Client to Both
     connect(this, &Server::ConfirmButtonYesClicked, graspNode_, &GraspNode::lineUp);      // Client to server
 
-    connect(cameraNode_, &RosCamera::imgUpdateWithPointQImage, this, &Server::uiDisplayImageSetCamera);  // Server to ui
+    connect(cameraNode_, &CameraNode::imgUpdateWithPointQImage, this, &Server::uiDisplayImageSetCamera);  // Server to ui
 
     // Grasp Page
 
@@ -89,20 +89,20 @@ void Server::initConnections() {
     connect(this, &Server::ButtonReleaseClicked, graspNode_, &GraspNode::releaseObject);        // Client to server
     connect(this, &Server::ButtonReplaceObjectClicked, graspNode_, &GraspNode::replaceObject);  // Client to server
 
-    connect(graspNode_, &GraspNode::headSetRotation, moveItNode_, &StretchMoveItInterface::headSetRotation, Qt::BlockingQueuedConnection);    // Server
-    connect(graspNode_, &GraspNode::headSetPan, moveItNode_, &StretchMoveItInterface::headSetPan, Qt::BlockingQueuedConnection);              // Server
-    connect(graspNode_, &GraspNode::headSetTilt, moveItNode_, &StretchMoveItInterface::headSetTilt, Qt::BlockingQueuedConnection);            // Server
-    connect(graspNode_, &GraspNode::armSetHeight, moveItNode_, &StretchMoveItInterface::armSetHeight, Qt::BlockingQueuedConnection);          // Server
-    connect(graspNode_, &GraspNode::armSetReach, moveItNode_, &StretchMoveItInterface::armSetReach, Qt::BlockingQueuedConnection);            // Server
-    connect(graspNode_, &GraspNode::gripperSetRotate, moveItNode_, &StretchMoveItInterface::gripperSetRotate, Qt::BlockingQueuedConnection);  // Server
-    connect(graspNode_, &GraspNode::gripperSetGrip, moveItNode_, &StretchMoveItInterface::gripperSetGrip, Qt::BlockingQueuedConnection);
-    connect(graspNode_, &GraspNode::enableMapping, mapNode_, &MapSubscriber::enableMapping, Qt::BlockingQueuedConnection);
-    connect(graspNode_, &GraspNode::disableMapping, mapNode_, &MapSubscriber::disableMapping, Qt::BlockingQueuedConnection);
-    connect(graspNode_, &GraspNode::homeRobot, moveItNode_, &StretchMoveItInterface::homeRobot, Qt::BlockingQueuedConnection);
-    connect(graspNode_, &GraspNode::navigate, mapNode_, &MapSubscriber::moveRobotLoc);
-    connect(graspNode_, &GraspNode::navigateHome, mapNode_, &MapSubscriber::navigateHome);
+    connect(graspNode_, &GraspNode::headSetRotation, moveItNode_, &StretchInterface::headSetRotation, Qt::BlockingQueuedConnection);    // Server
+    connect(graspNode_, &GraspNode::headSetPan, moveItNode_, &StretchInterface::headSetPan, Qt::BlockingQueuedConnection);              // Server
+    connect(graspNode_, &GraspNode::headSetTilt, moveItNode_, &StretchInterface::headSetTilt, Qt::BlockingQueuedConnection);            // Server
+    connect(graspNode_, &GraspNode::armSetHeight, moveItNode_, &StretchInterface::armSetHeight, Qt::BlockingQueuedConnection);          // Server
+    connect(graspNode_, &GraspNode::armSetReach, moveItNode_, &StretchInterface::armSetReach, Qt::BlockingQueuedConnection);            // Server
+    connect(graspNode_, &GraspNode::gripperSetRotate, moveItNode_, &StretchInterface::gripperSetRotate, Qt::BlockingQueuedConnection);  // Server
+    connect(graspNode_, &GraspNode::gripperSetGrip, moveItNode_, &StretchInterface::gripperSetGrip, Qt::BlockingQueuedConnection);
+    connect(graspNode_, &GraspNode::enableMapping, mapNode_, &MapNode::enableMapping, Qt::BlockingQueuedConnection);
+    connect(graspNode_, &GraspNode::disableMapping, mapNode_, &MapNode::disableMapping, Qt::BlockingQueuedConnection);
+    connect(graspNode_, &GraspNode::homeRobot, moveItNode_, &StretchInterface::homeRobot, Qt::BlockingQueuedConnection);
+    connect(graspNode_, &GraspNode::navigate, mapNode_, &MapNode::moveRobotLoc);
+    connect(graspNode_, &GraspNode::navigateHome, mapNode_, &MapNode::navigateHome);
     connect(graspNode_, &GraspNode::graspDone, this, &Server::uiButtonReturnObjectSetEnabled);  // Server to client
-    connect(graspNode_, &GraspNode::turnLeft, mapNode_, &MapSubscriber::rotateLeft);
+    connect(graspNode_, &GraspNode::turnLeft, mapNode_, &MapNode::rotateLeft);
     connect(graspNode_, &GraspNode::moving, moveBaseStatusNode_, &MoveBaseStatus::robotMovingSlot, Qt::BlockingQueuedConnection);
 }
 

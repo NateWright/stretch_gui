@@ -1,5 +1,4 @@
-#ifndef STRETCHMOVEITINTERFACE_HPP
-#define STRETCHMOVEITINTERFACE_HPP
+#pragma once
 
 #include <ros/ros.h>
 
@@ -12,11 +11,11 @@
 
 const double toRadians = M_PI / 180;
 
-class StretchMoveItInterface : public QThread {
+class StretchInterface : public QThread {
     Q_OBJECT
    public:
-    explicit StretchMoveItInterface(ros::NodeHandlePtr nh);
-    ~StretchMoveItInterface();
+    explicit StretchInterface(ros::NodeHandlePtr nh);
+    ~StretchInterface();
     void run() override;
 
     std::pair<int, int> getHeadPanTilt();
@@ -50,5 +49,3 @@ class StretchMoveItInterface : public QThread {
     void headRight();
     void headHome();
 };
-
-#endif  // STRETCHMOVEITINTERFACE_HPP

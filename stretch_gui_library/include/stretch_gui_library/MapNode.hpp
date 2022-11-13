@@ -1,6 +1,4 @@
-#ifndef MAPSUBSCRIBER_H
-#define MAPSUBSCRIBER_H
-
+#pragma once
 #include <actionlib_msgs/GoalStatus.h>
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <cv_bridge/cv_bridge.h>
@@ -30,15 +28,15 @@
 
 using std::vector;
 
-namespace MAPSUBSCRIBER {
+namespace MAP {
 const QImage::Format FORMAT = QImage::Format_RGB444;
 }
 
-class MapSubscriber : public QThread {
+class MapNode : public QThread {
     Q_OBJECT
    public:
-    explicit MapSubscriber(ros::NodeHandlePtr nodeHandle);
-    ~MapSubscriber();
+    explicit MapNode(ros::NodeHandlePtr nodeHandle);
+    ~MapNode();
     void run() override;
 
    private:
@@ -86,5 +84,3 @@ class MapSubscriber : public QThread {
 };
 
 QPoint translateScreenToMap(QPoint p, QSize screen, QSize map);
-
-#endif  // MAPSUBSCRIBER_H

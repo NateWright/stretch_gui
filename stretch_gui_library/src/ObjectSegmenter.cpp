@@ -8,7 +8,11 @@ ObjectSegmenter::ObjectSegmenter(ros::NodeHandlePtr nh) : nh_(nh) {
     tableCloud_.reset(new pcl::PointCloud<Point>);
 }
 
-void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputCloud, const Point pointToFind, const tf2_ros::Buffer* buffer) {
+/**
+ * Finds cluster in cloud nearest to point
+ * Returns distance between point and Plane
+ */
+float ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputCloud, const Point pointToFind, const tf2_ros::Buffer* buffer) {
     const std::string targetFrame = "base_link";
     const std::string outputFrame = inputCloud->header.frame_id;
     pcl::PointCloud<Point>::Ptr inputCloudTransformed(new pcl::PointCloud<Point>);
@@ -112,7 +116,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     p.y = pStamped.point.y;
     p.z = pStamped.point.z;
     computePlane(p);
-    distPlaneToPoint(planeA_, planeB_, planeC_, planeD_, pStamped.point.x, pStamped.point.y, pStamped.point.z);
+    float output = distPlaneToPoint(planeA_, planeB_, planeC_, planeD_, pStamped.point.x, pStamped.point.y, pStamped.point.z);
 
     // visual_tools_->publishABCDPlane(planeA_, planeB_, planeC_, planeD_, rviz_visual_tools::RED);
     // visual_tools_->trigger();
@@ -122,6 +126,7 @@ void ObjectSegmenter::segmentAndFind(const pcl::PointCloud<Point>::Ptr& inputClo
     cloud_cluster->header.frame_id = targetFrame;
     pcl_ros::transformPointCloud(outputFrame, *cloud_cluster, *cluster, *buffer);
     clusterPub_.publish(cluster);
+    return output;
 }
 
 void ObjectSegmenter::computePlane(Point p) {

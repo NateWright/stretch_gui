@@ -1,4 +1,4 @@
-#include "graspnode.hpp"
+#include "GraspNode.hpp"
 
 GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stopReplace_(false) {
     cmdVel_ = nh_->advertise<geometry_msgs::Twist>("/stretch/cmd_vel", 30);

@@ -1,5 +1,4 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 #include <QBuffer>
 #include <QByteArray>
@@ -8,12 +7,11 @@
 #include <QPoint>
 #include <QSize>
 #include <QTimer>
-#include <stretch_gui_library/StretchMoveItInterface.hpp>
-#include <stretch_gui_library/graspnode.hpp>
-#include <stretch_gui_library/mapsubscriber.hpp>
-#include <stretch_gui_library/movebasestatus.hpp>
-#include <stretch_gui_library/roscamera.hpp>
-#include <stretch_gui_library/sceneviewer.hpp>
+#include <stretch_gui_library/CameraNode.hpp>
+#include <stretch_gui_library/GraspNode.hpp>
+#include <stretch_gui_library/MapNode.hpp>
+#include <stretch_gui_library/MoveBaseStatusNode.hpp>
+#include <stretch_gui_library/StretchInterface.hpp>
 
 #include "rep_Server_source.h"
 
@@ -57,11 +55,11 @@ class Server : public ServerSimpleSource {
    private:
     ros::NodeHandlePtr nh_;
 
-    MapSubscriber *mapNode_;
+    MapNode *mapNode_;
     MoveBaseStatus *moveBaseStatusNode_;
-    RosCamera *cameraNode_;
+    CameraNode *cameraNode_;
     GraspNode *graspNode_;
-    StretchMoveItInterface *moveItNode_;
+    StretchInterface *moveItNode_;
 
     std::pair<int, int> headPanTilt_;
 
@@ -109,5 +107,3 @@ class Server : public ServerSimpleSource {
     void changeToConfirmObject();
     void changeToGrasping();
 };
-
-#endif  // SERVER_HPP
