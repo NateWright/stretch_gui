@@ -7,13 +7,12 @@ CameraNode::CameraNode(ros::NodeHandlePtr nh) : nh_(nh) {
     colorCameraSub_ = nh_->subscribe(pointCloudTopic, 30, &CameraNode::cameraCallback, this);
     segmentedCameraSub_ = nh_->subscribe("/stretch_pc/cluster", 30, &CameraNode::segmentedCameraCallback, this);
     pointPick_ = nh->advertise<geometry_msgs::PointStamped>("/clicked_point", 30);
-    centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &CameraNode::centerPointCallback, this);
     cameraPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image", 30);
+    cameraPointPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/imageSelection", 30);
+    clickInitiated_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/click_initiated", 30);
 
     tfBuffer_ = new tf2_ros::Buffer();
     tfListener_ = new tf2_ros::TransformListener(*tfBuffer_);
-
-    moveToThread(this);
 }
 CameraNode::~CameraNode() {
     spinner_->stop();
@@ -22,35 +21,24 @@ CameraNode::~CameraNode() {
     delete tfBuffer_;
 }
 
-void CameraNode::run() {
-    spinner_ = new ros::AsyncSpinner(0);
-    spinner_->start();
-    exec();
-}
-
 void CameraNode::cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pc) {
     cloud_ = pc;
 
     const int width = pc->width, height = pc->height;
-    camera_.reset(new QImage(height, width, Camera::FORMAT));
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rotatedCloud(new pcl::PointCloud<pcl::PointXYZRGB>(height, width, pcl::PointXYZRGB(0, 0, 0)));
 
-    pcl::PointXYZRGB point;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            point = pc->at(x, y);
-            camera_->setPixel(height - 1 - y, x, QColor(point.r, point.g, point.b).rgb());
-            rotatedCloud->at(height - 1 - y, x) = point;
+            rotatedCloud->at(height - 1 - y, x) = pc->at(x, y);
         }
     }
-    sensor_msgs::Image img;
-    pcl::toROSMsg(*rotatedCloud, img);
-    cameraPub_.publish(img);
+
+    pcl::toROSMsg(*rotatedCloud, *img_);
+    cameraPub_.publish(*img_);
 }
 
 void CameraNode::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pc) {
     const int width = sceneClickCloud_->width, height = sceneClickCloud_->height;
-    QSharedPointer<QImage> img = camera_;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(sceneClickCloud_);
@@ -58,20 +46,15 @@ void CameraNode::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>
     std::vector<int> pointIdxNKNSearch(count);
     std::vector<float> pointNKNSquaredDistance(count);
 
-    QRgb red = QColor(Qt::red).rgb();
+    cv_bridge::CvImagePtr img;
+    img = cv_bridge::toCvCopy(img_, sensor_msgs::image_encodings::BGR8);
     for (pcl::PointXYZRGB p : *pc) {
         kdtree.nearestKSearch(p, count, pointIdxNKNSearch, pointNKNSquaredDistance);
         for (int pos : pointIdxNKNSearch) {
-            img->setPixel(height - 1 - pos / width, pos % width, red);
+            img->image.at<cv::Scalar>(height - 1 - pos / width, pos % width) = CV_RGB(255, 0, 0);
         }
     }
-
-    emit imgUpdateWithObject(*img.data());
-}
-
-void CameraNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& point) {
-    emit checkPointInRange(point);
-    return;
+    cameraPointPub_.publish(img);
 }
 
 void CameraNode::sceneClicked(QPoint press, QPoint release, QSize screen) {
