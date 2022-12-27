@@ -74,7 +74,7 @@ void Server::initConnections() {
     connect(this, &Server::ConfirmButtonYesClicked, this, &Server::changeToGrasping);     // Client to Both
     connect(this, &Server::ConfirmButtonYesClicked, graspNode_, &GraspNode::lineUp);      // Client to server
 
-    connect(cameraNode_, &CameraNode::imgUpdateWithPointQImage, this, &Server::uiDisplayImageSetCamera);  // Server to ui
+    connect(cameraNode_, &CameraNode::imgUpdateWithObject, this, &Server::uiDisplayImageSetCamera);  // Server to ui
 
     // Grasp Page
 

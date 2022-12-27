@@ -41,7 +41,6 @@ set(ROS_DEPENDS
 set(EXTERNAL_DEPENDS
   Qt6Core
   Qt6Widgets
-  Qt6PrintSupport
   Qt6RemoteObjects
   Qt6Network
   #OpenCV
@@ -49,7 +48,6 @@ set(EXTERNAL_DEPENDS
 
 set(EXTERNAL_DEPENDS_LIB
   Qt6::Widgets
-  Qt6::PrintSupport
   Qt6::Core
   Qt6::RemoteObjects
   Qt6::Network

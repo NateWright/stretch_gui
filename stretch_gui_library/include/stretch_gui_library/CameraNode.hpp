@@ -58,17 +58,18 @@ class CameraNode : public QThread {
 
     ObjectSegmenterPtr segmenter_;
 
-    float distToTable_;
-
     void cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &);
     void segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &);
     void centerPointCallback(const geometry_msgs::PointStamped::ConstPtr &);
 
    signals:
-    void imgUpdate(const QPixmap &);
-    void imgUpdateQImage(QImage);
-    void imgUpdateWithPoint(const QPixmap &);
-    void imgUpdateWithPointQImage(QImage);
+    // void imgUpdate(const QPixmap &);
+    // void imgUpdateQImage(QImage);
+    // void imgUpdateWithPoint(const QPixmap &);
+
+    // Sends QImage with selected object on screen
+    void imgUpdateWithObject(QImage);
+    void distanceToTable(float);
     void checkPointInRange(const geometry_msgs::PointStamped::ConstPtr &);
     void clickSuccess();
     void clickFailure();

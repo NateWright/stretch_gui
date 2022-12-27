@@ -66,7 +66,7 @@ void CameraNode::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>
         }
     }
 
-    emit imgUpdateWithPointQImage(*img.data());
+    emit imgUpdateWithObject(*img.data());
 }
 
 void CameraNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& point) {
@@ -103,7 +103,7 @@ void CameraNode::sceneClicked(QPoint press, QPoint release, QSize screen) {
         point->point.z = p.z;
 
         try {
-            distToTable_ = segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_);
+            emit distanceToTable(segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_));
         } catch (ObjectOutOfRange error) {
             ROS_INFO_STREAM("object out of range");
             emit invalidPoint();
