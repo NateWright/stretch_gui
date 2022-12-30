@@ -1,9 +1,10 @@
 #include "MoveBaseStatusNode.hpp"
 
-MoveBaseStatus::MoveBaseStatus(ros::NodeHandlePtr nodeHandle) : nh_(nodeHandle), moving_(false) {
+MoveBaseStatus::MoveBaseStatus(ros::NodeHandlePtr nodeHandle) : nh_(nodeHandle) {
     moveBaseStatusSub_ = nh_->subscribe("/move_base/status", 1000, &MoveBaseStatus::moveBaseStatusCallback, this);
     moveBaseStopPub_ = nh_->advertise<actionlib_msgs::GoalID>("/move_base/cancel", 30);
-    moveToThread(this);
+    robotMoving_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/moving", 30, true);
+    stopRobot_ = nh_->subscribe("/stretch_gui/stop_robot", 30, &MoveBaseStatus::stopRobotCallback, this);
 }
 
 MoveBaseStatus::~MoveBaseStatus() {
@@ -11,23 +12,18 @@ MoveBaseStatus::~MoveBaseStatus() {
     delete spinner_;
 }
 
-void MoveBaseStatus::run() {
-    spinner_ = new ros::AsyncSpinner(0);
-    spinner_->start();
-    exec();
-}
-
 void MoveBaseStatus::moveBaseStatusCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &msg) {
+    std_msgs::Bool b;
     if (!msg.get()->status_list.empty() && msg.get()->status_list.back().status == 1) {
-        moving_ = true;
-        robotMoving(true);
+        b.data = true;
+        robotMoving_.publish(b);
         return;
     }
-    moving_ = false;
-    robotMoving(false);
+    b.data = false;
+    robotMoving_.publish(b);
 }
 
-void MoveBaseStatus::stopRobot() {
+void MoveBaseStatus::stopRobotCallback(std_msgs::Empty msg) {
     actionlib_msgs::GoalID stop;
     stop.stamp.sec = 0;
     stop.stamp.nsec = 0;

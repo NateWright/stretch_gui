@@ -6,10 +6,12 @@ CameraNode::CameraNode(ros::NodeHandlePtr nh) : nh_(nh) {
     nh->getParam("/stretch_gui/pointCloudTopic", pointCloudTopic);
     colorCameraSub_ = nh_->subscribe(pointCloudTopic, 30, &CameraNode::cameraCallback, this);
     segmentedCameraSub_ = nh_->subscribe("/stretch_pc/cluster", 30, &CameraNode::segmentedCameraCallback, this);
+    sceneClickedSub_ = nh_->subscribe("/stretch_gui/scene_clicked", 30, &CameraNode::sceneClicked, this);
     pointPick_ = nh->advertise<geometry_msgs::PointStamped>("/clicked_point", 30);
     cameraPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image", 30);
-    cameraPointPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/imageSelection", 30);
-    clickInitiated_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/click_initiated", 30);
+    cameraPointPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/image_selection", 30);
+    clickInitiated_ = nh_->advertise<std_msgs::Empty>("/stretch_gui/click_initiated", 30);
+    clickStatus_ = nh_->advertise<stretch_gui_library::PointStatus>("/stretch_gui/click_status", 20);
 
     tfBuffer_ = new tf2_ros::Buffer();
     tfListener_ = new tf2_ros::TransformListener(*tfBuffer_);
@@ -57,24 +59,27 @@ void CameraNode::segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>
     cameraPointPub_.publish(img);
 }
 
-void CameraNode::sceneClicked(QPoint press, QPoint release, QSize screen) {
+void CameraNode::sceneClicked(stretch_gui_library::PointClicked msg) {
     sceneClickCloud_ = cloud_;
     if (!sceneClickCloud_ || sceneClickCloud_->size() == 0) {
-        emit clickFailure();
+        stretch_gui_library::PointStatus outputMsg;
+        outputMsg.success = false;
+        outputMsg.msg = "Please try again";
+        clickStatus_.publish(outputMsg);
         return;
     }
-    int locX = press.x() * static_cast<double>(sceneClickCloud_->height) / static_cast<double>(screen.width());
-    int locY = press.y() * static_cast<double>(sceneClickCloud_->width) / static_cast<double>(screen.height());
+    uint32_t locX = msg.x * static_cast<double>(sceneClickCloud_->height) / static_cast<double>(msg.width);
+    uint32_t locY = msg.y * static_cast<double>(sceneClickCloud_->width) / static_cast<double>(msg.height);
 
     try {
         if (locY > sceneClickCloud_->width || locX > sceneClickCloud_->height) {
             throw(std::runtime_error("Not in range"));
         }
-        emit clickInitiated();
+        std_msgs::Empty b;
+        clickInitiated_.publish(b);
         pcl::PointXYZRGB p = sceneClickCloud_->at(locY, sceneClickCloud_->height - locX);
 
         if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
-            qDebug() << "click fail";
             throw(std::runtime_error("Point contains NaN"));
         }
 
@@ -86,21 +91,33 @@ void CameraNode::sceneClicked(QPoint press, QPoint release, QSize screen) {
         point->point.z = p.z;
 
         try {
-            emit distanceToTable(segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_));
-        } catch (ObjectOutOfRange error) {
+            // TODO
+            // emit distanceToTable(segmenter_->segmentAndFind(sceneClickCloud_, p, tfBuffer_));
+        } catch (ObjectOutOfRange& error) {
             ROS_INFO_STREAM("object out of range");
-            emit invalidPoint();
+            stretch_gui_library::PointStatus outputMsg;
+            outputMsg.success = false;
+            outputMsg.msg = "Object out of Range";
+            clickStatus_.publish(outputMsg);
             return;
         } catch (...) {
             ROS_INFO_STREAM("catch all");
             ROS_INFO_STREAM("Point cloud was empty after segmentation");
-            emit clickFailure();
+            stretch_gui_library::PointStatus outputMsg;
+            outputMsg.success = false;
+            outputMsg.msg = "No object in Scene";
+            clickStatus_.publish(outputMsg);
             return;
         }
         pointPick_.publish(point);
-        emit clickSuccess();
+        std_msgs::Bool outputMsg;
+        outputMsg.data = true;
+        clickStatus_.publish(outputMsg);
     } catch (...) {
-        emit clickFailure();
+        stretch_gui_library::PointStatus outputMsg;
+        outputMsg.success = false;
+        outputMsg.msg = "Segmentation failed";
+        clickStatus_.publish(outputMsg);
         return;
     }
 }

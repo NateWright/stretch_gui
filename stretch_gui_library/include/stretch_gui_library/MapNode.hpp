@@ -9,35 +9,32 @@
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
+#include <stretch_gui_library/MapPose.h>
+#include <stretch_gui_library/MoveCommand.h>
+#include <stretch_gui_library/Point.h>
+#include <stretch_gui_library/SetMapping.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <QDebug>
-#include <QGraphicsScene>
-#include <QImage>
-#include <QObject>
-#include <QPainter>
-#include <QPen>
-#include <QPoint>
-#include <QSize>
-#include <QThread>
-#include <QTimer>
 #include <cmath>
 
 using std::vector;
+using stretch_gui_library::MapPose;
+using stretch_gui_library::Point;
 
-namespace MAP {
-const QImage::Format FORMAT = QImage::Format_RGB444;
-}
+struct Size {
+    uint32_t width;
+    uint32_t height;
+};
 
-class MapNode : public QThread {
-    Q_OBJECT
+class MapNode {
    public:
     explicit MapNode(ros::NodeHandlePtr nodeHandle);
     ~MapNode();
-    void run() override;
 
    private:
     ros::NodeHandlePtr nh_;
@@ -52,12 +49,9 @@ class MapNode : public QThread {
     tf2_ros::Buffer tfBuffer_;
     tf2_ros::TransformListener* tfListener_;
 
-    QSize mapSize_;
-    QPoint origin_;
+    Size mapSize_;
+    Point origin_;
     double resolution_;
-
-    QPoint robotPos_;
-    double robotRot_;
 
     geometry_msgs::PoseStamped robotHome_;
     nav_msgs::OccupancyGrid::ConstPtr mapMsg_;
@@ -65,22 +59,25 @@ class MapNode : public QThread {
     void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
     void posCallback(const ros::TimerEvent&);
     void mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr);
-   signals:
-    void homeSet(bool);
-    void robotPose(QPoint, double);
 
-   public slots:
-    void moveRobot(QPoint press, QPoint release, QSize screen);
-    void moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose);
-    void setHome();
-    void setHomeIfNone();
-    void navigateHome();
-    void enableMapping();
-    void disableMapping();
-    void rotate(int degrees);
-    void rotateLeft(int degrees = 5);
-    void rotateRight(int degrees = 5);
-    void drive(double meter);
+    ros::Publisher hasHome_;
+    void hasHome(bool b) {
+        std_msgs::Bool msg;
+        msg.data = b;
+        hasHome_.publish(msg);
+    }
+    ros::Publisher robotPose_;
+
+    ros::Subscriber moveRobotSub_;
+    void moveRobotCallback(stretch_gui_library::MoveCommand msg);
+    ros::ServiceServer setMapping_;
+    bool setMapping(stretch_gui_library::SetMapping::Request& req, stretch_gui_library::SetMapping::Response& res);
+    ros::Subscriber setHome_;
+    void setHome(std_msgs::Empty msg);
+    ros::Subscriber setHomeIfNone_;
+    void setHomeIfNone(std_msgs::Empty msg);
+    ros::Subscriber navigateHome_;
+    void navigateHome(std_msgs::Empty msg);
 };
 
-QPoint translateScreenToMap(QPoint p, QSize screen, QSize map);
+Point translateScreenToMap(Point p, Size screen, Size map);

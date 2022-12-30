@@ -1,16 +1,22 @@
 #include "MapNode.hpp"
 
 MapNode::MapNode(ros::NodeHandlePtr nodeHandle)
-    : nh_(nodeHandle), robotPos_(QPoint(0, 0)) {
+    : nh_(nodeHandle) {
     mapSub_ = nh_->subscribe("/map", 30, &MapNode::mapCallback, this);
     mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapNode::mapPointCloudCallback, this);
-    std::string odomTopic;
-    nh_->getParam("/stretch_gui/odom", odomTopic);
+    moveRobotSub_ = nh_->subscribe("/stretch_gui/screen_move_robot", 30, &MapNode::moveRobotCallback, this);
+    posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapNode::posCallback, this);
+    setHome_ = nh_->subscribe("/stretch_gui/set_home", 30, &MapNode::setHome, this);
+    setHomeIfNone_ = nh_->subscribe("/stretch_gui/set_home_if_none", 30, &MapNode::setHomeIfNone, this);
+    navigateHome_ = nh_->subscribe("/stretch_gui/navigate_home", 30, &MapNode::navigateHome, this);
+
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
     mapPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map", 30, true);
-    posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapNode::posCallback, this);
+    robotPose_ = nh_->advertise<stretch_gui_library::MapPose>("/stretch_gui/pose", 30, true);
+    hasHome_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/has_home", 30, true);
+
+    setMapping_ = nh_->advertiseService("/stretch_gui/set_mapping", &MapNode::setMapping, this);
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
-    moveToThread(this);
 }
 
 MapNode::~MapNode() {
@@ -18,13 +24,6 @@ MapNode::~MapNode() {
     spinner_->stop();
     delete spinner_;
     delete tfListener_;
-}
-
-void MapNode::run() {
-    spinner_ = new ros::AsyncSpinner(0);
-    spinner_->start();
-    posTimer_.start();
-    exec();
 }
 
 void MapNode::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
@@ -40,14 +39,14 @@ void MapNode::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr
     }
     const int width = msg->info.width,
               height = msg->info.height;
-
-    mapSize_.setWidth(width);
-    mapSize_.setHeight(height);
+    mapSize_.width = width;
+    mapSize_.height = height;
     resolution_ = msg->info.resolution;
     const int originX = width + msg->info.origin.position.x / resolution_,
               originY = -msg->info.origin.position.y / resolution_;
 
-    origin_ = QPoint(originX, originY);
+    origin_.x = originX;
+    origin_.y = originY;
 
     cv::Mat mapImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
     for (const auto& p : *cloud) {
@@ -66,33 +65,33 @@ void MapNode::posCallback(const ros::TimerEvent&) {
 
     try {
         geometry_msgs::TransformStamped transBaseLinkToMap = tfBuffer_.lookupTransform(source, destination, ros::Time(0));
+        MapPose pose;
+        pose.rotation = tf2::getYaw(transBaseLinkToMap.transform.rotation);
 
-        robotRot_ = tf2::getYaw(transBaseLinkToMap.transform.rotation);
-
-        robotPos_.setX(origin_.x() - transBaseLinkToMap.transform.translation.x / resolution_);
-        robotPos_.setY(origin_.y() + transBaseLinkToMap.transform.translation.y / resolution_);
-        emit robotPose(robotPos_, robotRot_);
+        pose.point.x = origin_.x - transBaseLinkToMap.transform.translation.x / resolution_;
+        pose.point.y = origin_.y + transBaseLinkToMap.transform.translation.y / resolution_;
+        robotPose_.publish(pose);
     } catch (...) {
     }
 }
 
-void MapNode::moveRobot(QPoint press, QPoint release, QSize screen) {
-    if (press == release) {
+void MapNode::moveRobotCallback(stretch_gui_library::MoveCommand msg) {
+    if (msg.p1.x == msg.p2.x && msg.p1.y == msg.p2.y) {
         return;
     }
     geometry_msgs::PoseStamped pose;
 
-    QPoint mapLoc = translateScreenToMap(press, screen, mapSize_);
+    Point mapLoc = translateScreenToMap(msg.p1, Size{msg.width, msg.height}, mapSize_);
 
-    double locX = (origin_.x() - mapLoc.x()) * resolution_,
-           locY = (mapLoc.y() - origin_.y()) * resolution_;
+    double locX = (origin_.x - mapLoc.x) * resolution_,
+           locY = (mapLoc.y - origin_.y) * resolution_;
 
     pose.header.frame_id = "map";
     pose.pose.position.x = locX;
     pose.pose.position.y = locY;
 
-    double difX = release.x() - press.x();
-    double difY = release.y() - press.y();
+    double difX = msg.p2.x - msg.p1.x;
+    double difY = msg.p2.y - msg.p1.y;
 
     tf2::Vector3 v1(-1, 0, 0);
     v1.normalize();
@@ -117,11 +116,7 @@ void MapNode::moveRobot(QPoint press, QPoint release, QSize screen) {
     movePub_.publish(pose);
 }
 
-void MapNode::moveRobotLoc(const geometry_msgs::PoseStamped::Ptr pose) {
-    movePub_.publish(pose);
-}
-
-void MapNode::setHome() {
+void MapNode::setHome(std_msgs::Empty msg) {
     try {
         std::string source = "map",
                     destination = "base_link";
@@ -132,54 +127,35 @@ void MapNode::setHome() {
         robotHome_.pose.position.x = transBaseLinkToMap.transform.translation.x;
         robotHome_.pose.position.y = transBaseLinkToMap.transform.translation.y;
         robotHome_.pose.position.z = transBaseLinkToMap.transform.translation.z;
-        emit homeSet(true);
+        hasHome(true);
     } catch (...) {
     }
 }
 
-void MapNode::setHomeIfNone() {
+void MapNode::setHomeIfNone(std_msgs::Empty msg) {
     std::string s = robotHome_.header.frame_id;
     if (s.length() == 0) {
-        setHome();
+        setHome(msg);
     }
 }
+bool MapNode::setMapping(stretch_gui_library::SetMapping::Request& req, stretch_gui_library::SetMapping::Response& res) {
+    if (req.mapping) {
+        std_srvs::Empty msg;
+        ros::service::call("/rtabmap/resume", msg);
+    } else {
+        std_srvs::Empty msg;
+        ros::service::call("/rtabmap/pause", msg);
+    }
+    return true;
+}
 
-void MapNode::navigateHome() {
+void MapNode::navigateHome(std_msgs::Empty msg) {
     movePub_.publish(robotHome_);
 }
-void MapNode::disableMapping() {
-    std_srvs::Empty msg;
-    ros::service::call("/rtabmap/pause", msg);
-}
-void MapNode::enableMapping() {
-    std_srvs::Empty msg;
-    ros::service::call("/rtabmap/resume", msg);
-}
 
-void MapNode::rotate(int degrees) {
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    tf2::Quaternion q;
-    q.setRPY(0, 0, degrees * M_PI / 180);
-    pose.pose.orientation = tf2::toMsg(q);
-    movePub_.publish(pose);
-}
-
-void MapNode::rotateLeft(int degrees) {
-    rotate(degrees);
-}
-void MapNode::rotateRight(int degrees) {
-    rotate(-degrees);
-}
-
-void MapNode::drive(double meters) {
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    pose.pose.position.x = meters;
-    pose.pose.orientation.w = 1;
-    movePub_.publish(pose);
-}
-
-QPoint translateScreenToMap(QPoint p, QSize screen, QSize map) {
-    return QPoint((double)p.x() * (double)map.width() / (double)screen.width(), (double)p.y() * (double)map.height() / (double)screen.height());
+Point translateScreenToMap(Point p, Size screen, Size map) {
+    Point point;
+    point.x = static_cast<int>((double)p.x * (double)map.width / (double)screen.width);
+    point.y = static_cast<int>((double)p.y * (double)map.height / (double)screen.height);
+    return point;
 }

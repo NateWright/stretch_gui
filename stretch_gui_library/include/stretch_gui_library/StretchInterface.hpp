@@ -1,22 +1,16 @@
 #pragma once
 
 #include <ros/ros.h>
-
-#include <QDebug>
-#include <QObject>
-#include <QThread>
-#include <QTimer>
-
-#include "stretch_gui_library/DoubleBool.h"
+#include <std_srvs/Empty.h>
+#include <stretch_gui_library/Double.h>
+#include <stretch_gui_library/DoubleBool.h>
 
 const double toRadians = M_PI / 180;
 
-class StretchInterface : public QThread {
-    Q_OBJECT
+class StretchInterface {
    public:
     explicit StretchInterface(ros::NodeHandlePtr nh);
     ~StretchInterface();
-    void run() override;
 
     std::pair<int, int> getHeadPanTilt();
 
@@ -29,23 +23,34 @@ class StretchInterface : public QThread {
     ros::ServiceClient gipperYaw_;
     ros::ServiceClient gripperAperture_;
 
-    ros::AsyncSpinner *spinner_;
-
     int panAngle_;
     int tiltAngle_;
 
-   public slots:
-    void headSetRotation(const double degPan = 0, const double degTilt = 0);
-    void headSetPan(const double degPan = 0);
-    void headSetTilt(const double degTilt = 0);
-    void armSetHeight(const double metersHeight = 0.2);
-    void armSetReach(const double metersReach = 0);
-    void gripperSetRotate(const double deg = 180);
-    void gripperSetGrip(const double deg = 0);
-    void homeRobot();
-    void headUp();
-    void headDown();
-    void headLeft();
-    void headRight();
-    void headHome();
+    ros::ServiceServer setHeadRotation_;
+    ros::ServiceServer setHeadPan_;
+    ros::ServiceServer setHeadTilt_;
+    ros::ServiceServer setArmHeight_;
+    ros::ServiceServer setArmReach_;
+    ros::ServiceServer setGripperGrip_;
+    ros::ServiceServer setGripperRotation_;
+    ros::ServiceServer homeRobot_;
+    ros::ServiceServer headUp_;
+    ros::ServiceServer headDown_;
+    ros::ServiceServer headLeft_;
+    ros::ServiceServer headRight_;
+    ros::ServiceServer headHome_;
+
+    // void headSetRotation(const double degPan = 0, const double degTilt = 0);
+    bool setHeadPan(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool setHeadTilt(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool setArmHeight(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool setArmReach(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool setGripperRotation(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool setGripperGrip(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
+    bool homeRobot(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool headUp(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool headDown(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool headLeft(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool headRight(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool headHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 };

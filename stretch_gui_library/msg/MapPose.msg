@@ -1,0 +1,2 @@
+float32 rotation
+stretch_gui_library/Point point

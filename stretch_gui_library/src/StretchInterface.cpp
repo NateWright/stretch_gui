@@ -7,87 +7,125 @@ StretchInterface::StretchInterface(ros::NodeHandlePtr nh) : nh_(nh), panAngle_(0
     armExtension_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/lift_extension");
     gipperYaw_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/wrist_yaw");
     gripperAperture_ = nh_->serviceClient<stretch_gui_library::DoubleBool>("/stretch_interface/gripper_opening");
-    moveToThread(this);
+
+    setHeadPan_ = nh_->advertiseService("/stretch_gui/set_head_pan", &StretchInterface::setHeadPan, this);
+    setHeadTilt_ = nh_->advertiseService("/stretch_gui/set_head_tilt", &StretchInterface::setHeadTilt, this);
+    setArmHeight_ = nh_->advertiseService("/stretch_gui/set_arm_height", &StretchInterface::setArmHeight, this);
+    setArmReach_ = nh_->advertiseService("/stretch_gui/set_arm_reach", &StretchInterface::setArmReach, this);
+    setGripperGrip_ = nh_->advertiseService("/stretch_gui/set_gripper_grip", &StretchInterface::setGripperGrip, this);
+    setGripperRotation_ = nh_->advertiseService("/stretch_gui/set_gripper_rotation", &StretchInterface::setGripperRotation, this);
+    homeRobot_ = nh_->advertiseService("/stretch_gui/home_robot", &StretchInterface::homeRobot, this);
+    headUp_ = nh_->advertiseService("/stretch_gui/head_up", &StretchInterface::headUp, this);
+    headDown_ = nh_->advertiseService("/stretch_gui/head_down", &StretchInterface::headDown, this);
+    headLeft_ = nh_->advertiseService("/stretch_gui/head_left", &StretchInterface::headLeft, this);
+    headRight_ = nh_->advertiseService("/stretch_gui/head_right", &StretchInterface::headRight, this);
+    headHome_ = nh_->advertiseService("/stretch_gui/head_Home", &StretchInterface::headHome, this);
 }
 
 StretchInterface::~StretchInterface() {
-    spinner_->stop();
-    delete spinner_;
-}
-
-void StretchInterface::run() {
-    spinner_ = new ros::AsyncSpinner(0);
-    spinner_->start();
-    exec();
 }
 
 std::pair<int, int> StretchInterface::getHeadPanTilt() {
     return {panAngle_, tiltAngle_};
 }
 
-void StretchInterface::headSetRotation(const double degPan, const double degTilt) {
-    headSetPan(degPan);
-    headSetTilt(degTilt);
-}
+// void StretchInterface::headSetRotation(const double degPan, const double degTilt) {
+//     setHeadPan(degPan);
+//     setHeadTilt(degTilt);
+// }
 
-void StretchInterface::headSetPan(const double degPan) {
-    panAngle_ = degPan;
+bool StretchInterface::setHeadPan(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
+    panAngle_ = req.data;
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = degPan * toRadians;
+    srv.request.data = panAngle_ * toRadians;
     headPan_.call(srv);
+    return true;
 }
-void StretchInterface::headSetTilt(const double degTilt) {
-    tiltAngle_ = degTilt;
+bool StretchInterface::setHeadTilt(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
+    tiltAngle_ = req.data;
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = degTilt * toRadians;
+    srv.request.data = tiltAngle_ * toRadians;
     headTilt_.call(srv);
+    return true;
 }
-void StretchInterface::armSetHeight(const double metersHeight) {
+bool StretchInterface::setArmHeight(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = metersHeight;
+    srv.request.data = req.data;
     armLift_.call(srv);
+    return true;
 }
-void StretchInterface::armSetReach(const double metersReach) {
+bool StretchInterface::setArmReach(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = metersReach;
+    srv.request.data = req.data;
     armExtension_.call(srv);
+    return true;
 }
-void StretchInterface::gripperSetRotate(const double deg) {
+bool StretchInterface::setGripperRotation(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = deg * toRadians;
+    srv.request.data = req.data * toRadians;
     gipperYaw_.call(srv);
+    return true;
 }
-void StretchInterface::gripperSetGrip(const double deg) {
+bool StretchInterface::setGripperGrip(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
     stretch_gui_library::DoubleBool srv;
-    srv.request.data = deg * toRadians;
+    srv.request.data = req.data * toRadians;
     gripperAperture_.call(srv);
+    return true;
 }
-void StretchInterface::homeRobot() {
-    headSetTilt();
-    headSetPan();
-    gripperSetGrip();
-    gripperSetRotate();
-    armSetHeight();
-    armSetReach();
+bool StretchInterface::homeRobot(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
+    request.data = 0;
+    setHeadTilt(request, response);
+    setHeadPan(request, response);
+    setGripperGrip(request, response);
+    request.data = 180;
+    setGripperRotation(request, response);
+    request.data = 0.2;
+    setArmHeight(request, response);
+    request.data = 0;
+    setArmReach(request, response);
+    return true;
 }
 
-void StretchInterface::headUp() {
+bool StretchInterface::headUp(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
     tiltAngle_ += 5;
-    headSetTilt(tiltAngle_);
+    request.data = tiltAngle_;
+    setHeadTilt(request, response);
+    return true;
 }
-void StretchInterface::headDown() {
+bool StretchInterface::headDown(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
     tiltAngle_ -= 5;
-    headSetTilt(tiltAngle_);
+    request.data = tiltAngle_;
+    setHeadTilt(request, response);
+    return true;
 }
-void StretchInterface::headLeft() {
+bool StretchInterface::headLeft(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
     panAngle_ += 5;
-    headSetPan(panAngle_);
+    request.data = panAngle_;
+    setHeadPan(request, response);
+    return true;
 }
-void StretchInterface::headRight() {
+bool StretchInterface::headRight(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
     panAngle_ -= 5;
-    headSetPan(panAngle_);
+    request.data = panAngle_;
+    setHeadPan(request, response);
+    return true;
 }
 
-void StretchInterface::headHome() {
-    headSetRotation();
+bool StretchInterface::headHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    stretch_gui_library::Double::Request request;
+    stretch_gui_library::Double::Response response;
+    request.data = 0;
+    setHeadPan(request, response);
+    setHeadTilt(request, response);
+    return true;
 }

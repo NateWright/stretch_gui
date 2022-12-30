@@ -1,8 +1,24 @@
 #include "GraspNode.hpp"
 
 GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stopReplace_(false) {
+    setMapping_ = nh_->serviceClient<stretch_gui_library::SetMapping>("/stretch_gui/set_mapping");
+    setHeadPan_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_head_pan");
+    setHeadTilt_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_head_tilt");
+    setArmHeight_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_arm_height");
+    setArmReach_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_arm_reach");
+    setGripperRotation_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_gripper_rotation");
+    setGripperGrip_ = nh_->serviceClient<stretch_gui_library::Double>("/stretch_gui/set_gripper_grip");
+
     cmdVel_ = nh_->advertise<geometry_msgs::Twist>("/stretch/cmd_vel", 30);
+    navigateRobot_ = nh_->advertise<geometry_msgs::PoseStamped>("/stretch_gui/navigate", 30);
+    graspCompleted_ = nh_->advertise<std_msgs::Empty>("/stretch_gui/grasp_status", 30, true);
+    hasObject_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/has_object", 30, true);
+    canNavigate_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/can_navigate", 30, true);
+
     centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &GraspNode::centerPointCallback, this);
+    moving_ = nh_->subscribe("/stretch_gui/moving", 30, &GraspNode::movingCallback, this);
+
+    setObjectOrientation_ = nh_->advertiseService("/stretch_gui/set_object_orientation", &GraspNode::setOrientation, this);
 
     nh_->getParam("/stretch_gui/verticalOffset", verticalOffset_);
     nh_->getParam("/stretch_gui/horizontalOffset", horizontalOffset_);
@@ -10,7 +26,6 @@ GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stop
     pointBaseLink_.reset(new geometry_msgs::PointStamped());
 
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
-    moveToThread(this);
 }
 
 GraspNode::~GraspNode() {
@@ -19,18 +34,12 @@ GraspNode::~GraspNode() {
     delete tfListener_;
 }
 
-void GraspNode::run() {
-    spinner_ = new ros::AsyncSpinner(0);
-    spinner_->start();
-    exec();
-}
-
 void GraspNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr& input) {
     geometry_msgs::PointStamped point = tfBuffer_.transform(*input, "base_link");
     *pointBaseLink_ = point;
 }
 
-void GraspNode::lineUp() {
+void GraspNode::lineUpCallback() {
     switch (orientation_) {
         case VERTICAL: {
             lineUpOffset(verticalOffset_);
@@ -43,17 +52,19 @@ void GraspNode::lineUp() {
     }
 }
 
-void GraspNode::setHorizontal() {
-    orientation_ = HORIZONTAL;
-}
-void GraspNode::setVertical() {
-    orientation_ = VERTICAL;
+bool GraspNode::setOrientation(stretch_gui_library::SetObjectOrientation::Request& request, stretch_gui_library::SetObjectOrientation::Response& response) {
+    if (request.vertical) {
+        orientation_ = VERTICAL;
+    } else {
+        orientation_ = HORIZONTAL;
+    }
+    return true;
 }
 void GraspNode::lineUpOffset(double offset) {
     ros::AsyncSpinner s(1);
     s.start();
     ros::Duration d(0.5);
-    emit disableMapping();
+    setMapping(false);
 
     std::string targetFrame = "map", sourceFrame = "base_link";
 
@@ -92,27 +103,27 @@ void GraspNode::lineUpOffset(double offset) {
     }
 
     d.sleep();
-    emit headSetPan(-90);
+    setHeadPan(-90);
     d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z + 0.05);
+    setArmHeight(pointBaseLink_->point.z + 0.05);
     d.sleep();
-    emit gripperSetRotate(0);
+    setGripperRotation(0);
     d.sleep();
-    emit gripperSetGrip(30);
-    d.sleep();
-    d.sleep();
-    d.sleep();
-    emit armSetReach(sqrt(pointBaseLink_->point.x * pointBaseLink_->point.x + pointBaseLink_->point.y * pointBaseLink_->point.y) - offset);
+    setGripperGrip(30);
     d.sleep();
     d.sleep();
     d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z);
+    setArmReach(sqrt(pointBaseLink_->point.x * pointBaseLink_->point.x + pointBaseLink_->point.y * pointBaseLink_->point.y) - offset);
+    d.sleep();
+    d.sleep();
+    d.sleep();
+    setArmHeight(pointBaseLink_->point.z);
 
-    emit graspDone(true);
-    emit canNavigate(false);
+    graspDone();
+    canNavigate(false);
 }
 
-void GraspNode::replaceObject() {
+void GraspNode::replaceObjectCallback() {
     switch (orientation_) {
         case VERTICAL: {
             replaceObjectOffset(verticalOffset_);
@@ -129,20 +140,20 @@ void GraspNode::replaceObjectOffset(double offset) {
     ros::AsyncSpinner s(1);
     s.start();
     ros::Duration d(1.0);
-    emit enableMapping();
+    setMapping(true);
 
-    emit navigate(homePose_);
+    navigateRobot_.publish(homePose_);
     d.sleep();
     d.sleep();
 
-    while (emit moving()) {
+    while (robotMoving_) {
         d.sleep();
         if (stopReplace_) {
             stopReplace_ = false;
             return;
         }
     }
-    emit disableMapping();
+    setMapping(false);
 
     cmdMsg_.angular.z = -cmdMsg_.angular.z;
     ros::Duration turnTime(turnTime_);
@@ -153,65 +164,65 @@ void GraspNode::replaceObjectOffset(double offset) {
     }
 
     d.sleep();
-    emit headSetPan(-90);
+    setHeadPan(-90);
     d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z + 0.05);
-    d.sleep();
-    emit gripperSetRotate(0);
-    d.sleep();
-    emit armSetReach(sqrt(pointBaseLink_->point.x * pointBaseLink_->point.x + pointBaseLink_->point.y * pointBaseLink_->point.y) - offset);
-    d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z);
-    d.sleep();
-    d.sleep();
-    emit gripperSetGrip(30);
-    d.sleep();
-    d.sleep();
-    d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z + 0.05);
 
-    emit hasObject(false);
+    setArmHeight(pointBaseLink_->point.z + 0.05);
+    d.sleep();
+    setGripperRotation(0);
+    d.sleep();
+    setArmReach(sqrt(pointBaseLink_->point.x * pointBaseLink_->point.x + pointBaseLink_->point.y * pointBaseLink_->point.y) - offset);
+    d.sleep();
+    setArmHeight(pointBaseLink_->point.z);
+    d.sleep();
+    d.sleep();
+    setGripperGrip(30);
+    d.sleep();
+    d.sleep();
+    d.sleep();
+    setArmHeight(pointBaseLink_->point.z + 0.05);
+
+    hasObject(false);
 }
 
-void GraspNode::releaseObject() {
+void GraspNode::releaseObjectCallback() {
     ros::Duration d(3.0);
-    emit armSetHeight(0.75);
+    setArmHeight(0.75);
     d.sleep();
-    emit gripperSetGrip(30);
+    setGripperGrip(30);
     d.sleep();
-    emit armSetReach();
+    setArmReach();
     d.sleep();
-    emit headSetPan();
+    setHeadPan();
     d.sleep();
-    emit gripperSetGrip();
+    setGripperGrip();
     d.sleep();
-    emit gripperSetRotate();
+    setGripperRotation();
     d.sleep();
-    emit armSetHeight();
+    setArmHeight();
     d.sleep();
-    emit enableMapping();
+    setMapping(true);
     d.sleep();
-    emit canNavigate(true);
-    emit hasObject(false);
-    emit releaseDone();
+    canNavigate(true);
+    hasObject(false);
 }
 
-void GraspNode::stowObject() {
-    emit hasObject(true);
+void GraspNode::stowObjectCallback() {
+    hasObject(true);
     ros::Duration d(1.0);
-    emit gripperSetGrip(-3);
+    setGripperGrip(-3);
     d.sleep();
-    emit armSetHeight(pointBaseLink_->point.z + 0.05);
+    setArmHeight(pointBaseLink_->point.z + 0.05);
     d.sleep();
-    emit armSetReach();
+    setArmReach();
     d.sleep();
-    emit gripperSetRotate(90);
+    setGripperRotation(90);
     d.sleep();
-    emit headSetTilt(-30);
+    setHeadTilt(-30);
     d.sleep();
-    emit headSetPan();
+    setHeadPan();
     d.sleep();
-    emit armSetHeight(0.40);
+    setArmHeight(0.40);
     d.sleep();
 
     cmdMsg_.angular.z = -cmdMsg_.angular.z;
@@ -221,25 +232,25 @@ void GraspNode::stowObject() {
     if (turnTime.sleep()) {
         timer.stop();
     }
-    emit enableMapping();
-    emit canNavigate(true);
+    setMapping(true);
+    canNavigate(true);
 }
 
-void GraspNode::home() {
+void GraspNode::homeCallback() {
     ros::Duration d(0.25);
-    emit armSetHeight(pointBaseLink_->point.z + 0.05);
+    setArmHeight(pointBaseLink_->point.z + 0.05);
     d.sleep();
-    emit armSetReach();
+    setArmReach();
     d.sleep();
-    emit headSetPan();
+    setHeadPan();
     d.sleep();
-    emit gripperSetGrip();
+    setGripperGrip();
     d.sleep();
-    emit gripperSetRotate();
+    setGripperRotation();
     d.sleep();
-    emit armSetHeight();
+    setArmHeight();
     d.sleep();
-    emit enableMapping();
+    setMapping(true);
     d.sleep();
-    emit canNavigate(true);
+    canNavigate(true);
 }

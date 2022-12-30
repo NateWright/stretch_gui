@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(stretch_gui_library)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++14 -Wall)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -57,16 +57,22 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  PointClicked.msg
+  PointStatus.msg
+  Point.msg
+  MapPose.msg
+  MoveCommand.msg
+)
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   DoubleBool.srv
+  SetObjectOrientation.srv
+  SetMapping.srv
+  Double.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -114,7 +120,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS moveit_ros_planning rviz_visual_tools moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge
+ CATKIN_DEPENDS moveit_ros_planning rviz_visual_tools moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge message_generation
  DEPENDS Qt6Core Qt6PrintSupport Qt6Widgets
 )
 
@@ -164,6 +170,11 @@ add_library(${PROJECT_NAME} STATIC
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(stretch_gazebo nodes/stretch_gazebo.cpp)
+add_executable(camera_node nodes/camera_node.cpp)
+add_executable(grasp_node nodes/grasp_node.cpp)
+add_executable(map_node nodes/map_node.cpp)
+add_executable(move_base_node nodes/move_base_node.cpp)
+add_executable(stretch_interface_node nodes/stretch_interface_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -186,6 +197,11 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_link_libraries(stretch_gazebo ${PROJECT_NAME})
+target_link_libraries(camera_node ${PROJECT_NAME})
+target_link_libraries(grasp_node ${PROJECT_NAME})
+target_link_libraries(map_node ${PROJECT_NAME})
+target_link_libraries(move_base_node ${PROJECT_NAME})
+target_link_libraries(stretch_interface_node ${PROJECT_NAME})
 
 #############
 ## Install ##

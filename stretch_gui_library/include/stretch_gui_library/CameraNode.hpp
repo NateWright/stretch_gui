@@ -10,6 +10,8 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
+#include <stretch_gui_library/PointClicked.h>
+#include <stretch_gui_library/PointStatus.h>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -29,12 +31,18 @@ class CameraNode {
 
     ros::Subscriber colorCameraSub_;
     ros::Subscriber segmentedCameraSub_;
-    ros::Subscriber centerPointSub_;
+    ros::Subscriber sceneClickedSub_;
 
+    // Listens to a scene clicked for a point to find in cloud
     ros::Publisher pointPick_;
+    // Publishes rotated image from camera
     ros::Publisher cameraPub_;
+    // Publishes image with highlighted object
     ros::Publisher cameraPointPub_;
+    // Emits a bool stating click initiated
     ros::Publisher clickInitiated_;
+    // Emits a bool indicating click success or failure
+    ros::Publisher clickStatus_;
 
     ros::AsyncSpinner *spinner_;
     tf2_ros::Buffer *tfBuffer_;
@@ -49,17 +57,5 @@ class CameraNode {
 
     void cameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &);
     void segmentedCameraCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &);
-
-   signals:
-
-    // Sends QImage with selected object on screen
-    void imgUpdateWithObject(QImage);
-    void distanceToTable(float);
-    void clickSuccess();
-    void clickFailure();
-    void clickInitiated();
-    void validPoint();
-    void invalidPoint();
-   public slots:
-    void sceneClicked(QPoint press, QPoint release, QSize screen);
+    void sceneClicked(stretch_gui_library::PointClicked);
 };
