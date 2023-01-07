@@ -19,7 +19,7 @@ StretchInterface::StretchInterface(ros::NodeHandlePtr nh) : nh_(nh), panAngle_(0
     headDown_ = nh_->advertiseService("/stretch_gui/head_down", &StretchInterface::headDown, this);
     headLeft_ = nh_->advertiseService("/stretch_gui/head_left", &StretchInterface::headLeft, this);
     headRight_ = nh_->advertiseService("/stretch_gui/head_right", &StretchInterface::headRight, this);
-    headHome_ = nh_->advertiseService("/stretch_gui/head_Home", &StretchInterface::headHome, this);
+    headHome_ = nh_->advertiseService("/stretch_gui/head_home", &StretchInterface::headHome, this);
 }
 
 StretchInterface::~StretchInterface() {
@@ -28,11 +28,6 @@ StretchInterface::~StretchInterface() {
 std::pair<int, int> StretchInterface::getHeadPanTilt() {
     return {panAngle_, tiltAngle_};
 }
-
-// void StretchInterface::headSetRotation(const double degPan, const double degTilt) {
-//     setHeadPan(degPan);
-//     setHeadTilt(degTilt);
-// }
 
 bool StretchInterface::setHeadPan(stretch_gui_library::Double::Request& req, stretch_gui_library::Double::Response& res) {
     panAngle_ = req.data;

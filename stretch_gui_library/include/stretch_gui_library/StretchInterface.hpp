@@ -26,7 +26,6 @@ class StretchInterface {
     int panAngle_;
     int tiltAngle_;
 
-    ros::ServiceServer setHeadRotation_;
     ros::ServiceServer setHeadPan_;
     ros::ServiceServer setHeadTilt_;
     ros::ServiceServer setArmHeight_;
@@ -40,7 +39,6 @@ class StretchInterface {
     ros::ServiceServer headRight_;
     ros::ServiceServer headHome_;
 
-    // void headSetRotation(const double degPan = 0, const double degTilt = 0);
     bool setHeadPan(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
     bool setHeadTilt(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
     bool setArmHeight(stretch_gui_library::Double::Request&, stretch_gui_library::Double::Response&);
