@@ -11,7 +11,7 @@ MapNode::MapNode(ros::NodeHandlePtr nodeHandle)
     navigateHome_ = nh_->subscribe("/stretch_gui/navigate_home", 30, &MapNode::navigateHome, this);
 
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
-    mapPub_ = nh_->advertise<sensor_msgs::Image>("/stretch_gui/map", 30, true);
+    mapPub_ = nh_->advertise<sensor_msgs::CompressedImage>("/stretch_gui/map", 30, true);
     robotPose_ = nh_->advertise<stretch_gui_library::MapPose>("/stretch_gui/pose", 30, true);
     hasHome_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/has_home", 30, true);
 
@@ -56,7 +56,7 @@ void MapNode::mapPointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr
     map->header.frame_id = cloud->header.frame_id;
     map->encoding = sensor_msgs::image_encodings::RGB8;
     map->image = mapImage;
-    mapPub_.publish(map->toImageMsg());
+    mapPub_.publish(map->toCompressedImageMsg());
 }
 
 void MapNode::posCallback(const ros::TimerEvent&) {
