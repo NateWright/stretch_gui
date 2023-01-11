@@ -72,12 +72,12 @@ class MapNode {
     void moveRobotCallback(stretch_gui_library::MoveCommand msg);
     ros::ServiceServer setMapping_;
     bool setMapping(stretch_gui_library::SetMapping::Request& req, stretch_gui_library::SetMapping::Response& res);
-    ros::Subscriber setHome_;
-    void setHome(std_msgs::Empty msg);
+    ros::ServiceServer setHome_;
+    bool setHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     ros::Subscriber setHomeIfNone_;
     void setHomeIfNone(std_msgs::Empty msg);
-    ros::Subscriber navigateHome_;
-    void navigateHome(std_msgs::Empty msg);
+    ros::ServiceServer navigateHome_;
+    bool navigateHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 };
 
 Point translateScreenToMap(Point p, Size screen, Size map);

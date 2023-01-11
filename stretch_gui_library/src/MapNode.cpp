@@ -6,14 +6,15 @@ MapNode::MapNode(ros::NodeHandlePtr nodeHandle)
     mapPointCloudSub_ = nh_->subscribe("/rtabmap/cloud_ground", 30, &MapNode::mapPointCloudCallback, this);
     moveRobotSub_ = nh_->subscribe("/stretch_gui/screen_move_robot", 30, &MapNode::moveRobotCallback, this);
     posTimer_ = nh_->createTimer(ros::Duration(0.1), &MapNode::posCallback, this);
-    setHome_ = nh_->subscribe("/stretch_gui/set_home", 30, &MapNode::setHome, this);
+    setHome_ = nh_->advertiseService("/stretch_gui/set_home", &MapNode::setHome, this);
     setHomeIfNone_ = nh_->subscribe("/stretch_gui/set_home_if_none", 30, &MapNode::setHomeIfNone, this);
-    navigateHome_ = nh_->subscribe("/stretch_gui/navigate_home", 30, &MapNode::navigateHome, this);
+    navigateHome_ = nh_->advertiseService("/stretch_gui/navigate_home", &MapNode::navigateHome, this);
 
     movePub_ = nh_->advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 30);
     mapPub_ = nh_->advertise<sensor_msgs::CompressedImage>("/stretch_gui/map", 30, true);
     robotPose_ = nh_->advertise<stretch_gui_library::MapPose>("/stretch_gui/pose", 30, true);
     hasHome_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/has_home", 30, true);
+    nh_->setParam("/stretch_gui/has_home", false);
 
     setMapping_ = nh_->advertiseService("/stretch_gui/set_mapping", &MapNode::setMapping, this);
     tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
@@ -116,7 +117,7 @@ void MapNode::moveRobotCallback(stretch_gui_library::MoveCommand msg) {
     movePub_.publish(pose);
 }
 
-void MapNode::setHome(std_msgs::Empty msg) {
+bool MapNode::setHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
     try {
         std::string source = "map",
                     destination = "base_link";
@@ -128,14 +129,17 @@ void MapNode::setHome(std_msgs::Empty msg) {
         robotHome_.pose.position.y = transBaseLinkToMap.transform.translation.y;
         robotHome_.pose.position.z = transBaseLinkToMap.transform.translation.z;
         hasHome(true);
+        nh_->setParam("/stretch_gui/has_home", true);
     } catch (...) {
     }
+    return true;
 }
 
 void MapNode::setHomeIfNone(std_msgs::Empty msg) {
     std::string s = robotHome_.header.frame_id;
     if (s.length() == 0) {
-        setHome(msg);
+        std_srvs::Empty m;
+        setHome(m.request, m.response);
     }
 }
 bool MapNode::setMapping(stretch_gui_library::SetMapping::Request& req, stretch_gui_library::SetMapping::Response& res) {
@@ -149,8 +153,9 @@ bool MapNode::setMapping(stretch_gui_library::SetMapping::Request& req, stretch_
     return true;
 }
 
-void MapNode::navigateHome(std_msgs::Empty msg) {
+bool MapNode::navigateHome(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
     movePub_.publish(robotHome_);
+    return true;
 }
 
 Point translateScreenToMap(Point p, Size screen, Size map) {

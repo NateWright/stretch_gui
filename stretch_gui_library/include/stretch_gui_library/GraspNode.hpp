@@ -6,14 +6,13 @@
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Empty.h>
+#include <std_srvs/Empty.h>
 #include <stretch_gui_library/Double.h>
 #include <stretch_gui_library/SetMapping.h>
 #include <stretch_gui_library/SetObjectOrientation.h>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_listener.h>
-
-enum Position { VERTICAL,
-                HORIZONTAL };
 
 class GraspNode {
    public:
@@ -24,21 +23,15 @@ class GraspNode {
     ros::NodeHandlePtr nh_;
     ros::Subscriber centerPointSub_;
 
-    ros::ServiceServer setObjectOrientation_;
-
     geometry_msgs::Twist cmdMsg_;
     double turnTime_;
-
-    ros::AsyncSpinner *spinner_;
 
     tf2_ros::Buffer tfBuffer_;
     tf2_ros::TransformListener *tfListener_;
 
     geometry_msgs::PointStamped::Ptr pointBaseLink_;
-
     geometry_msgs::PoseStamped::Ptr homePose_;
 
-    Position orientation_ = VERTICAL;
     double verticalOffset_;
     double horizontalOffset_;
 
@@ -46,9 +39,11 @@ class GraspNode {
     bool stopReplace_;
 
     void centerPointCallback(const geometry_msgs::PointStamped::ConstPtr &input);
-    bool setOrientation(stretch_gui_library::SetObjectOrientation::Request &request, stretch_gui_library::SetObjectOrientation::Response &response);
     void lineUpOffset(double offset);
     void replaceObjectOffset(double offset);
+
+    ros::ServiceServer homeRobot_;
+    bool homeCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
     ros::ServiceClient setMapping_;
     void setMapping(bool b) {
@@ -104,13 +99,16 @@ class GraspNode {
     ros::Publisher hasObject_;  // void hasObject(bool);
     void hasObject(bool b) {
         std_msgs::Bool msg;
-        msg.data = true;
+        msg.data = b;
         hasObject_.publish(msg);
+        nh_->setParam("/stretch_gui/has_object", b);
     }
     ros::Publisher canNavigate_;  // void canNavigate(bool);
     void canNavigate(bool b) {
         std_msgs::Bool msg;
-        msg.data = true;
+        msg.data = b;
+        canNavigate_.publish(msg);
+        nh_->setParam("/stretch_gui/can_navigate", b);
     }
     // ros::Publisher releaseDone_;  // void releaseDone();
     ros::Subscriber moving_;  // bool moving();
@@ -118,17 +116,15 @@ class GraspNode {
         robotMoving_ = msg.data;
     }
     ros::Subscriber lineUp_;
-    void lineUpCallback();
-    ros::Subscriber replaceObject;
-    void replaceObjectCallback();
+    void lineUpCallback(std_msgs::Empty msg);
     ros::Subscriber stopAction_;
     void stopReplaceCallback() {
         stopReplace_ = true;
     }
-    ros::Subscriber stowObject_;
-    void stowObjectCallback();
-    ros::Subscriber homeRobot_;
-    void homeCallback();
-    ros::Subscriber releaseObject_;
-    void releaseObjectCallback();
+    ros::ServiceServer stowObject_;
+    bool stowObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+    ros::ServiceServer releaseObject_;
+    bool releaseObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+    ros::ServiceServer replaceObject_;
+    bool replaceObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 };

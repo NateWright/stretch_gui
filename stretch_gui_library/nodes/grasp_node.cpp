@@ -5,7 +5,9 @@
 int main(int argc, char *argv[]) {
     ros::init(argc, argv, "Grasp_Node");
     ros::NodeHandlePtr nh(new ros::NodeHandle());
+    ros::AsyncSpinner s(2);
     GraspNode gn(nh);
-    ros::spin();
+    s.start();
+    ros::waitForShutdown();
     return 0;
 }

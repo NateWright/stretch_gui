@@ -1,4 +1,5 @@
 odom: "/stretch_diff_drive_controller/odom"
+cmd_vel: "/stretch_diff_drive_controller/cmd_vel"
 pointCloudTopic: "/camera/depth/color/points"
 verticalOffset: 0.35
 horizontalOffset: 0.36

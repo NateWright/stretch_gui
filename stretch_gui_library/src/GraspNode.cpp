@@ -13,12 +13,29 @@ GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stop
     navigateRobot_ = nh_->advertise<geometry_msgs::PoseStamped>("/stretch_gui/navigate", 30);
     graspCompleted_ = nh_->advertise<std_msgs::Empty>("/stretch_gui/grasp_status", 30, true);
     hasObject_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/has_object", 30, true);
+    if (nh_->hasParam("/stretch_gui/has_object")) {
+        bool b;
+        nh_->getParam("/stretch_gui/has_object", b);
+        hasObject(b);
+    } else {
+        hasObject(false);
+    }
     canNavigate_ = nh_->advertise<std_msgs::Bool>("/stretch_gui/can_navigate", 30, true);
+    if (nh_->hasParam("/stretch_gui/can_navigate")) {
+        bool b;
+        nh_->getParam("/stretch_gui/can_navigate", b);
+        canNavigate(b);
+    } else {
+        canNavigate(true);
+    }
+    homeRobot_ = nh_->advertiseService("/stretch_gui/home_robot", &GraspNode::homeCallback, this);
+    stowObject_ = nh_->advertiseService("/stretch_gui/stow_object", &GraspNode::stowObjectCallback, this);
+    replaceObject_ = nh_->advertiseService("/stretch_gui/replace_object", &GraspNode::replaceObjectCallback, this);
+    releaseObject_ = nh_->advertiseService("/stretch_gui/release_object", &GraspNode::releaseObjectCallback, this);
 
     centerPointSub_ = nh_->subscribe("/stretch_pc/centerPoint", 30, &GraspNode::centerPointCallback, this);
     moving_ = nh_->subscribe("/stretch_gui/moving", 30, &GraspNode::movingCallback, this);
-
-    setObjectOrientation_ = nh_->advertiseService("/stretch_gui/set_object_orientation", &GraspNode::setOrientation, this);
+    lineUp_ = nh_->subscribe("/stretch_gui/grasp", 30, &GraspNode::lineUpCallback, this);
 
     nh_->getParam("/stretch_gui/verticalOffset", verticalOffset_);
     nh_->getParam("/stretch_gui/horizontalOffset", horizontalOffset_);
@@ -29,8 +46,6 @@ GraspNode::GraspNode(ros::NodeHandlePtr nh) : nh_(nh), robotMoving_(false), stop
 }
 
 GraspNode::~GraspNode() {
-    spinner_->stop();
-    delete spinner_;
     delete tfListener_;
 }
 
@@ -39,32 +54,21 @@ void GraspNode::centerPointCallback(const geometry_msgs::PointStamped::ConstPtr&
     *pointBaseLink_ = point;
 }
 
-void GraspNode::lineUpCallback() {
-    switch (orientation_) {
-        case VERTICAL: {
-            lineUpOffset(verticalOffset_);
-            break;
-        }
-        case HORIZONTAL: {
-            lineUpOffset(horizontalOffset_);
-            break;
-        }
-    }
-}
-
-bool GraspNode::setOrientation(stretch_gui_library::SetObjectOrientation::Request& request, stretch_gui_library::SetObjectOrientation::Response& response) {
-    if (request.vertical) {
-        orientation_ = VERTICAL;
+void GraspNode::lineUpCallback(std_msgs::Empty msg) {
+    bool orientation;
+    nh_->getParam("/stretch_gui/object_orientation", orientation);
+    if (orientation) {
+        lineUpOffset(verticalOffset_);
     } else {
-        orientation_ = HORIZONTAL;
+        lineUpOffset(horizontalOffset_);
     }
-    return true;
 }
 void GraspNode::lineUpOffset(double offset) {
-    ros::AsyncSpinner s(1);
-    s.start();
+    // ros::AsyncSpinner s(1);
+    // s.start();
     ros::Duration d(0.5);
     setMapping(false);
+    canNavigate(false);
 
     std::string targetFrame = "map", sourceFrame = "base_link";
 
@@ -120,20 +124,17 @@ void GraspNode::lineUpOffset(double offset) {
     setArmHeight(pointBaseLink_->point.z);
 
     graspDone();
-    canNavigate(false);
 }
 
-void GraspNode::replaceObjectCallback() {
-    switch (orientation_) {
-        case VERTICAL: {
-            replaceObjectOffset(verticalOffset_);
-            break;
-        }
-        case HORIZONTAL: {
-            replaceObjectOffset(horizontalOffset_);
-            break;
-        }
+bool GraspNode::replaceObjectCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+    bool orientation;
+    nh_->getParam("/stretch_gui/object_orientation", orientation);
+    if (orientation) {
+        replaceObjectOffset(verticalOffset_);
+    } else {
+        replaceObjectOffset(horizontalOffset_);
     }
+    return true;
 }
 
 void GraspNode::replaceObjectOffset(double offset) {
@@ -154,6 +155,7 @@ void GraspNode::replaceObjectOffset(double offset) {
         }
     }
     setMapping(false);
+    canNavigate(false);
 
     cmdMsg_.angular.z = -cmdMsg_.angular.z;
     ros::Duration turnTime(turnTime_);
@@ -185,7 +187,7 @@ void GraspNode::replaceObjectOffset(double offset) {
     hasObject(false);
 }
 
-void GraspNode::releaseObjectCallback() {
+bool GraspNode::releaseObjectCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
     ros::Duration d(3.0);
     setArmHeight(0.75);
     d.sleep();
@@ -205,9 +207,10 @@ void GraspNode::releaseObjectCallback() {
     d.sleep();
     canNavigate(true);
     hasObject(false);
+    return true;
 }
 
-void GraspNode::stowObjectCallback() {
+bool GraspNode::stowObjectCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
     hasObject(true);
     ros::Duration d(1.0);
     setGripperGrip(-3);
@@ -234,9 +237,10 @@ void GraspNode::stowObjectCallback() {
     }
     setMapping(true);
     canNavigate(true);
+    return true;
 }
 
-void GraspNode::homeCallback() {
+bool GraspNode::homeCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
     ros::Duration d(0.25);
     setArmHeight(pointBaseLink_->point.z + 0.05);
     d.sleep();
@@ -253,4 +257,5 @@ void GraspNode::homeCallback() {
     setMapping(true);
     d.sleep();
     canNavigate(true);
+    return true;
 }

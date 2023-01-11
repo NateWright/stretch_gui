@@ -1,0 +1,23 @@
+<launch>
+  <arg name="sim" />
+
+  <node name="web_video_server" pkg="web_video_server" type="web_video_server" output="log" />
+  <param name="/stretch_gui/object_orientation" value="true" />
+
+  <group if="$(arg sim)">
+    <include file="$(find stretch_gui_server)/launch/stretch_gazebo.xml"/>
+    <rosparam command="load" file="$(find stretch_gui_server)/config/params_gazebo.yaml" ns="stretch_gui"/>
+
+    <node name="camera_node" pkg="stretch_gui_library" type="camera_node" output="screen" />
+    <node name="gasp_node" pkg="stretch_gui_library" type="grasp_node" output="screen" />
+    <node name="map_node" pkg="stretch_gui_library" type="map_node" output="screen" />
+    <node name="move_base_node" pkg="stretch_gui_library" type="move_base_node" output="screen" />
+    <node name="stretch_interface_node" pkg="stretch_gui_library" type="stretch_interface_node" output="screen" />
+  </group>
+  <group unless="$(arg sim)">
+  <include file="$(find stretch_gui_server)/launch/stretch_interface.xml"/>
+    <node name="stretch_gui" pkg="stretch_gui_server" type="server_node" output="screen">
+      <rosparam command="load" file="$(find stretch_gui_server)/config/params.yaml" />
+    </node>
+  </group>
+</launch>
