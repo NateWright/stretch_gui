@@ -1,5 +1,6 @@
 <launch>
   <arg name="sim" />
+  <arg name="ip" />
 
   <node name="web_video_server" pkg="web_video_server" type="web_video_server" output="log" />
 
@@ -7,6 +8,7 @@
     <include file="$(find stretch_gui_server)/launch/stretch_gazebo.xml"/>
     <node name="stretch_gui" pkg="stretch_gui_server" type="server_node" output="screen" >
       <rosparam command="load" file="$(find stretch_gui_server)/config/params_gazebo.yaml" />
+      <param name="ip" type="string" value="$(arg ip)"/>
     </node>
   </group>
   <group unless="$(arg sim)">
