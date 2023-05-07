@@ -18,7 +18,7 @@
 class Server : public ServerSimpleSource {
     Q_OBJECT
    public:
-    explicit Server(QObject *parent = nullptr);
+    explicit Server(ros::NodeHandlePtr nh);
     ~Server();
 
     void uiGrasp();

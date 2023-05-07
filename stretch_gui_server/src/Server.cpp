@@ -1,7 +1,6 @@
 #include "Server.hpp"
 
-Server::Server(QObject* parent) : ServerSimpleSource(parent), headPanTilt_({0, -30}) {
-    nh_.reset(new ros::NodeHandle("stretch_gui_server"));
+Server::Server(ros::NodeHandlePtr nh) : nh_(nh), headPanTilt_({0, -30}) {
     mapNode_ = new MapNode(nh_);
     moveBaseStatusNode_ = new MoveBaseStatus(nh_);
     cameraNode_ = new CameraNode(nh_);
