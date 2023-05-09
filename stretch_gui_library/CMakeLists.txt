@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport Concurrent)
+# find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport Concurrent)
 
 
 ## System dependencies are found with CMake's conventions
@@ -121,7 +121,6 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
  CATKIN_DEPENDS moveit_ros_planning rviz_visual_tools moveit_ros_planning_interface pcl_ros roscpp rospy std_msgs tf2_ros cv_bridge message_generation
- DEPENDS Qt6Core Qt6PrintSupport Qt6Widgets
 )
 
 ###########
@@ -140,7 +139,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-qt_wrap_cpp("include/${PROJECT_NAME}/*.hpp")
+# qt_wrap_cpp("include/${PROJECT_NAME}/*.hpp")
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME} STATIC
@@ -190,10 +189,6 @@ add_executable(stretch_interface_node nodes/stretch_interface_node.cpp)
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
   ${catkin_LIBRARIES}
-  Qt6::Widgets
-  Qt6::PrintSupport
-  Qt6::Core
-  Qt6::Concurrent
 )
 
 target_link_libraries(stretch_gazebo ${PROJECT_NAME})

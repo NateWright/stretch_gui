@@ -70,18 +70,6 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
-  <build_depend>Qt6Core</build_depend>
-  <build_export_depend>Qt6Core</build_export_depend>
-  <exec_depend>Qt6Core</exec_depend>
-  <build_depend>Qt6PrintSupport</build_depend>
-  <build_export_depend>Qt6PrintSupport</build_export_depend>
-  <exec_depend>Qt6PrintSupport</exec_depend>
-  <build_depend>Qt6Widgets</build_depend>
-  <build_export_depend>Qt6Widgets</build_export_depend>
-  <exec_depend>Qt6Widgets</exec_depend>
-  <build_depend>Qt6Concurrent</build_depend>
-  <build_export_depend>Qt6Concurrent</build_export_depend>
-  <exec_depend>Qt6Concurrent</exec_depend>
   <build_depend>cv_bridge</build_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <exec_depend>cv_bridge</exec_depend>
